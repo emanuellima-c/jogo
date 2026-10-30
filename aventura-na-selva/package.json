@@ -1,0 +1,14 @@
+{
+  "name": "aventura-na-selva",
+  "version": "3.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Jogo original de plataforma em canvas, sem dependências externas.",
+  "scripts": {
+    "preparar": "node ferramentas/gerar-compatibilidade.mjs",
+    "test": "node ferramentas/gerar-compatibilidade.mjs --verificar && node ferramentas/testar.mjs && node ferramentas/testar-inicializacao.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

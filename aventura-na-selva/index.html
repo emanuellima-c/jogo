@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#123449">
+<meta name="description" content="Aventura na Selva: campanha original com mercador, puzzles, cidades e músicas procedurais.">
+<title>Aventura na Selva — Caminhos de Aurora</title>
+<link rel="icon" href="data:,">
+
+  <link rel="stylesheet" href="css/temas.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/hud.css">
+  <link rel="stylesheet" href="css/menus.css">
+  <link rel="stylesheet" href="css/aurora.css">
+</head>
+<body>
+<main id="palco" class="palco" data-estado="MENU" aria-busy="true">
+  <section id="inicializacao" class="inicializacao" role="status" aria-live="polite">Preparando sua aventura… Se esta mensagem permanecer, extraia o ZIP inteiro antes de abrir index.html.</section>
+  <div id="quadroJogo" class="moldura">
+    <canvas id="jogo" width="960" height="540" tabindex="0" aria-label="Aventura na Selva. Setas ou A e D para andar. Espaço para pular. X para atacar. E para conversar.">Ative o suporte a canvas 2D no seu navegador.</canvas>
+    <div class="hud" aria-label="Indicadores da aventura">
+      <div class="indicador"><span>MOEDAS</span><strong id="moedas">◈ 0</strong><small id="pontos">000000</small></div>
+      <div class="indicador vida"><span>VIDAS</span><strong id="vidas" class="coracoes">♥♥♥</strong><small id="combo">×1</small></div>
+      <div class="indicador heroi"><span id="nivel">HERÓI · NÍVEL 1</span><progress id="xp" max="100" value="0" aria-label="Experiência"></progress><small id="xpTexto">0 XP</small></div>
+      <div class="indicador"><span id="mundo">SELVA ESMERALDA</span><strong id="fase">FASE 01 / 15</strong><small id="estrelas">☆☆☆</small></div>
+      <button id="botaoPausa" class="botao-pausa" aria-label="Pausar aventura" disabled>Ⅱ</button>
+    </div>
+    <div class="trilha"><progress id="progresso" max="1" value="0" aria-label="Progresso da fase"></progress><span id="nomeFase">Trilha dos Brotos</span><span id="tempo">0:00</span></div>
+    <div class="estado-poderes"><span id="estadoEscudo">⬡ —</span><span id="estadoIma"></span><span id="estadoDash">↠ <progress id="dash" max="1" value="1" aria-label="Recarga do dash"></progress></span></div>
+    <div class="barra-chefe" id="chefeHud" hidden><div><strong id="nomeChefe"></strong><span id="faseChefe"></span></div><progress id="vidaChefe" max="1" value="1" aria-label="Vida do chefe"></progress></div>
+    <p id="aviso" class="aviso" role="status" aria-live="polite"></p>
+  </div>
+  <div class="ferramentas"><button id="botaoSom" data-acao="som" aria-label="Desativar som" title="Som · M">♫</button><button id="botaoTelaCheia" data-acao="telaCheia" aria-label="Entrar em tela cheia" title="Tela cheia">⛶</button></div>
+  <div class="sobreposicao" id="telas">
+    <section class="painel titulo-arcade" data-tela="MENU" aria-labelledby="tituloMenu">
+      <div class="bloco-titulo"><p class="sobretitulo">EXPLORE OS CAMINHOS DE AURORA</p><div class="selo-aurora" aria-hidden="true">✦</div><h1 id="tituloMenu" class="logo-arcade">AVENTURA<br><em>NA SELVA</em></h1><p class="faixa-titulo">CAMINHOS DE AURORA</p><nav class="menu-arcade" aria-label="Menu principal"><button data-acao="jogar" id="botaoJogar" class="primario">JOGAR <span>↗</span></button><button data-acao="retomar" id="botaoContinuar">CONTINUAR <span>→</span></button><button data-acao="opcoes">OPÇÕES <span>⚙</span></button><button data-acao="sair">SAIR <span>↘</span></button></nav><div class="links-menu"><button data-acao="mapa">MAPA</button><button data-acao="personagem">PERSONAGEM</button><button data-acao="desafios">DESAFIOS</button><button data-acao="ajuda">COMO JOGAR</button></div></div>
+      <aside class="cartao-jornada"><span class="sobretitulo">SEU PRÓXIMO CAMINHO</span><div id="resumoPerfil"></div><p>Explore cinco ambientes, encontre Bento do Cipó e descubra novos movimentos.</p><small>15 fases · 5 chefes · 3 provas de habilidade</small><small>Setas / WASD · Espaço · E para conversar</small></aside>
+    </section>
+    <section class="painel compacto" data-tela="PAUSADO" hidden><p class="sobretitulo">UM RESPIRO NA JORNADA</p><h2>A aventura espera.</h2><button data-acao="continuar" class="primario">Continuar →</button><button data-acao="opcoes">Opções</button><button data-acao="reiniciar">Recomeçar esta área</button><button data-acao="menu">Voltar ao título</button></section>
+    <section class="painel" data-tela="MAPA" hidden><div class="titulo-painel"><div><p class="sobretitulo">CINCO AMBIENTES, MUITOS CAMINHOS</p><h2>Mapa de Aurora</h2></div><button data-acao="menu" class="voltar">← Voltar</button></div><div id="mapaFases"></div><small>Moedas e habilidades são permanentes. Bento espera por você nos descansos entre as fases.</small></section>
+    <section class="painel" data-tela="PERSONAGEM" hidden><div class="titulo-painel"><div><p class="sobretitulo">CADA DESCOBERTA FICA COM VOCÊ</p><h2 id="tituloPersonagem">Seu aventureiro</h2></div><button data-acao="menu" class="voltar">← Voltar</button></div><div id="atributos" class="grade-atributos"></div><div id="movimentosAprendidos" class="movimentos-aprendidos"></div><h3>Relíquias permanentes</h3><div id="inventario" class="inventario"></div></section>
+    <section class="painel" data-tela="DESAFIOS" hidden><div class="titulo-painel"><div><p class="sobretitulo">VÁ ALÉM DO PORTAL</p><h2>Desafios e recordes</h2></div><button data-acao="menu" class="voltar">← Voltar</button></div><div class="duas-colunas"><div id="listaDesafios"></div><aside><h3>Top 10 local</h3><div id="ranking"></div></aside></div></section>
+    <section class="painel compacto" data-tela="OPCOES" hidden><p class="sobretitulo">NO SEU RITMO</p><h2>Opções</h2><div id="opcoes"></div><button data-acao="voltarOpcoes" class="primario">← Voltar</button></section>
+    <section class="painel" data-tela="AJUDA" hidden><div class="titulo-painel"><div><p class="sobretitulo">UM GUIA DOS CAMINHOS</p><h2>Como jogar</h2></div><button data-acao="menu" class="voltar">← Voltar</button></div><div class="duas-colunas"><div><h3>Controles</h3><p><kbd>A / D / ← / →</kbd> para andar.<br><kbd>Espaço / W / ↑</kbd> para pular. Segure para ir mais alto.<br><kbd>X / J</kbd> para atacar.<br><kbd>E</kbd> para conversar com Bento.<br><kbd>Shift / K</kbd> para dash, depois de aprender.<br><kbd>C</kbd> ou segurar pulo na queda para planar, depois de aprender.<br><kbd>P / Esc</kbd> para pausar. <kbd>M</kbd> para mutar.</p><p>No celular, use os botões de toque. Os puzzles aceitam toques e arraste; você também pode selecionar uma peça e tocar no destino.</p></div><div><h3>Bento do Cipó</h3><p>Após concluir uma fase, atravesse a área de descanso. Aproxime-se do mercador e use E ou toque em CONVERSAR. Compre vida, escudo e ímã ou melhore atributos. As melhorias ficam salvas.</p><p>Depois da fase 1, a prova de símbolos ensina pulo duplo. Após a fase 3, o jogo da memória ensina dash. Após a fase 6, reconstruir o mapa ensina planar. Tentar novamente é gratuito.</p><p>Suas relíquias e a escolha entre três presentes continuam disponíveis com Bento. Não há mais tela automática de upgrades.</p><h3>Dicas de combate</h3><p>Macacos e besouros podem ser derrotados pulando por cima. Tatus resistem pela frente. Chefes avisam seus ataques e mudam de padrão em três etapas. Totens acesos marcam checkpoints.</p></div></div><p>O projeto usa HTML, CSS e módulos JavaScript separados, sem bibliotecas ou recursos externos. Extraia a pasta inteira e abra index.html. Live Server e servidor Python também são compatíveis. O salvamento depende do armazenamento permitido pelo navegador. Use sempre o mesmo arquivo/local ou exporte seu progresso nas opções.</p></section>
+    <section class="painel" data-tela="FASE_CONCLUIDA" hidden><p class="sobretitulo">MAIS UM CAMINHO CONQUISTADO</p><div id="resultado"></div><button data-acao="avancar" id="botaoAvancar" class="primario">Ir para o descanso →</button><button data-acao="menu">Voltar ao título</button></section>
+    <section class="painel loja" data-tela="LOJA" hidden><div class="titulo-painel"><div><p class="sobretitulo">BENTO DO CIPÓ · MERCADOR DOS CAMINHOS</p><h2>Um bom encontro.</h2></div><div><strong id="saldoLoja" class="saldo-loja">◈ 0</strong><button data-acao="fecharLoja" class="voltar">← Voltar ao cenário</button></div></div><div class="dialogo-mercador"><div class="retrato-mercador"><canvas id="retratoBento" width="128" height="144" aria-label="Retrato de Bento do Cipó"></canvas></div><p id="falaLoja" role="status" aria-live="polite"></p></div><h3>Provisões e melhorias</h3><div id="produtosLoja" class="produtos"></div><h3>Provas de movimento · sem custo para tentar</h3><div id="treinosLoja" class="treinos"></div><div id="presentesLoja"></div></section>
+    <section class="painel puzzle" data-tela="PUZZLE" hidden><div class="titulo-painel"><div><p class="sobretitulo">UMA LIÇÃO DE BENTO DO CIPÓ</p><h2 id="tituloPuzzle"></h2></div><button data-acao="voltarLoja" class="voltar">← Voltar à loja</button></div><p id="instrucaoPuzzle"></p><div id="corpoPuzzle"></div><p id="feedbackPuzzle" class="feedback-puzzle" role="status" aria-live="polite"></p><div class="grade-botoes"><button data-acao="repetirPuzzle">Tentar novamente</button><button data-acao="voltarLoja" class="primario" id="finalizarPuzzle">Voltar ao Bento →</button></div></section>
+    <section class="painel compacto" data-tela="FIM_DE_JOGO" hidden><p class="sobretitulo">OUTROS CAMINHOS AINDA ESPERAM</p><h2>Fim de jogo</h2><p id="pontuacaoFinal"></p><p>Moedas guardadas, nível, aprendizados e melhorias foram mantidos.</p><button data-acao="reiniciar" class="primario">Tentar novamente →</button><button data-acao="menu">Voltar ao título</button></section>
+    <section class="painel" data-tela="VITORIA" hidden><p class="sobretitulo">AURORA VOLTOU A BRILHAR</p><h2>A selva conhece seu nome.</h2><div id="resumoVitoria"></div><button data-acao="novoCiclo" class="primario">Nova expedição + · manter seu personagem →</button><button data-acao="mapa">Revisitar os caminhos</button><button data-acao="menu">Voltar ao título</button></section>
+    <section class="painel compacto" data-tela="SAIU" hidden><p class="sobretitulo">ATÉ A PRÓXIMA AVENTURA</p><h2>Jornada guardada.</h2><p id="textoSaida">Você pode fechar esta aba quando quiser.</p><button data-acao="menu" class="primario">Voltar ao título →</button></section>
+  </div>
+  <button id="interagirMercador" class="interagir" data-acao="interagir" hidden>E · CONVERSAR COM BENTO</button>
+  <nav class="toque" id="toque" aria-label="Controles de toque"><div><button data-controle="esquerda" aria-label="Andar para esquerda">←</button><button data-controle="direita" aria-label="Andar para direita">→</button></div><div><button data-controle="dash" id="toqueDash" aria-label="Dash">↠</button><button data-controle="atacar" class="ataque" aria-label="Atacar">⚔</button><button data-controle="pular" class="salto" aria-label="Pular ou segurar para planar">↑</button></div></nav>
+  <div id="transicao" class="transicao" aria-hidden="true"></div><div id="puzzleGhost" class="puzzle-ghost" hidden><canvas id="ghostCanvas" width="72" height="72"></canvas></div>
+  <small id="avisoSave" class="aviso-save" hidden>Armazenamento indisponível · exporte seu progresso nas opções</small><div id="relatorioTestes" class="relatorio" hidden></div><section id="erro" class="falha" role="alert" hidden></section>
+  <input id="importarSave" type="file" accept="application/json,.json" hidden>
+</main>
+<noscript>Ative JavaScript para abrir a aventura.</noscript>
+<script defer src="iniciar.js"></script>
+</body>
+</html>
