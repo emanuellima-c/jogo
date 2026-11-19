@@ -61,4 +61,21 @@ assert.equal(incompleto.palco.dataset.inicializacao, 'erro');
 const vazio = await executar({ 'compat/manifesto.js': 'AventuraModulos.arquivos=[];' });
 assert.equal(vazio.palco.dataset.inicializacao, 'erro');
 assert.match(vazio.aviso.textContent, /lista de arquivos/);
-console.log('5 testes do carregador local passaram: inicialização única, pasta com espaço, arquivo ausente, erro de código e registro incompleto/vazio.');
+
+const preparandoArte = await executar({
+  ...fontesBase,
+  'compat/main.js': "AventuraModulos.registrar('src/main.js', e => { e.pronto = new Promise(resolver => { globalThis.artePronta = resolver; }); });"
+});
+assert.equal(preparandoArte.palco.dataset.inicializacao, 'carregando');
+preparandoArte.contexto.artePronta();
+await new Promise(resolver => setImmediate(resolver));
+assert.equal(preparandoArte.palco.dataset.inicializacao, 'pronto');
+assert.equal(preparandoArte.aviso.hidden, true);
+
+const arteQuebrada = await executar({
+  ...fontesBase,
+  'compat/main.js': "AventuraModulos.registrar('src/main.js', e => { e.pronto = Promise.reject(new Error('Arte indisponível')); });"
+});
+assert.equal(arteQuebrada.palco.dataset.inicializacao, 'erro');
+assert.match(arteQuebrada.aviso.textContent, /Arte indisponível/);
+console.log('7 testes do carregador local passaram, incluindo espera pela arte e falha de decodificação.');

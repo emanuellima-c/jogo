@@ -12,7 +12,7 @@ const { Aleatorio } = usar("src/core/aleatorio.js");
 const { carregarPerfil, salvarPerfil } = usar("src/core/save.js");
 const { criarMundo } = usar("src/ecs/mundo.js");
 const { SpatialHash } = usar("src/ecs/spatialHash.js");
-const { posicionarJogador } = usar("src/entidades/jogador.js");
+const { cancelarAtaque, posicionarJogador } = usar("src/entidades/jogador.js");
 const { atualizarMovimento } = usar("src/ecs/sistemas/movimento.js");
 const { atualizarFisica } = usar("src/ecs/sistemas/fisica.js");
 const { atualizarAnimacao } = usar("src/ecs/sistemas/animacao.js");
@@ -44,13 +44,13 @@ class Engine {
     this.textos = new Pool(B.textosMaximos, () => ({ ativo: false, x: 0, y: 0, tempo: 0, texto: '', cor: '#fff4c4' }));
     this.aviso = { texto: '', cor: '#ffe0a0', tempo: 0 }; this.hitstop = 0; this.cameraLenta = 0;
     this.combo = 1; this.comboContagem = 0; this.comboTempo = 0; this.sujo = false; this.esperaSave = 0;
-    this.saveDisponivel = true; this.resultado = null;
-    this.descanso=null; this.puzzle=null; this.mercadorPerto=false; this.tempoTitulo=0; this.suspenso=false;
+    this.saveDisponivel = Boolean(armazenamento); this.resultado = null;
+    this.descanso=null; this.puzzle=null; this.mercadorPerto=false; this.suspenso=false;
     this.lojaFeedback='Bem-vindo! Dê uma olhada. As provas de habilidade são gratuitas.'; this.telaCheia=null; this.origemOpcoes=E.MENU;
     this.loop = new LoopPrincipal(this.atualizar.bind(this), this.desenhar.bind(this));
     this.eventos.ao('pulou', j => { if (j.tipo === 'jogador') { this.particulas.emitir(j, C.poeiraPulo); this.som('pulo'); } });
     this.eventos.ao('pousou', j => { if (j.tipo === 'jogador') this.particulas.emitir(j, C.poeiraPouso); });
-    this.eventos.ao('dano', () => { this.camera.abalar(); this.hitstop = this.semMovimento() ? 0 : C.hitstop; this.som('dano'); });
+    this.eventos.ao('dano', () => { this.camera.abalar(); this.pausarImpacto(C.hitstop); this.som('dano'); });
     this.eventos.ao('inimigoDerrotado', e => this.recompensarInimigo(e));
     this.eventos.ao('itemColetado', item => this.recompensarItem(item));
     this.eventos.ao('estadoAlterado', estado => {
@@ -64,6 +64,7 @@ class Engine {
   vidasAtuais(){return sessao.vidas;}
   semMovimento() { return this.reduzirMovimento || !this.perfil.opcoes.movimento; }
   som(tipo) { this.audio?.tocar(tipo); }
+  pausarImpacto(duracao) { this.hitstop = this.semMovimento() ? 0 : Math.max(this.hitstop, duracao); }
   salvar() {
     this.perfil.recorde = Math.max(this.perfil.recorde, sessao.recorde);
     if(this.descanso && this.perfil.descanso)this.perfil.descanso.vidas=sessao.vidas;
@@ -122,6 +123,7 @@ class Engine {
     else if(acao==='continuar'&&this.estados.atual===E.PAUSADO)this.mostrar(E.JOGANDO);
     else if(acao==='menu'){this.mostrar(E.MENU);this.loop.iniciar();}
     else if(acao==='mapa')this.mostrar(E.MAPA);
+    else if(acao==='verMundo'&&this.estados.atual===E.MENU){this.mostrar(E.MAPA);this.interface.focarMundo(Number(valor));}
     else if(acao==='personagem')this.mostrar(E.PERSONAGEM);
     else if(acao==='desafios')this.mostrar(E.DESAFIOS);
     else if(acao==='opcoes'){this.origemOpcoes=this.estados.atual;this.mostrar(E.OPCOES);}
@@ -155,7 +157,9 @@ class Engine {
       this.perfil.opcoes.som=!this.perfil.opcoes.som;this.audio?.configurar(this.perfil.opcoes.som,this.perfil.opcoes.volume);this.salvar();
       if(this.estados.atual===E.OPCOES)this.mostrar(E.OPCOES);
     }else if(acao==='movimento'){
-      this.perfil.opcoes.movimento=!this.perfil.opcoes.movimento;this.camera.reduzirMovimento=this.semMovimento();this.salvar();this.mostrar(E.OPCOES);
+      this.perfil.opcoes.movimento=!this.perfil.opcoes.movimento;this.camera.reduzirMovimento=this.semMovimento();
+      if(this.camera.reduzirMovimento)this.hitstop=0;
+      this.salvar();this.mostrar(E.OPCOES);
     }else if(acao==='modo'&&['normal','relaxado','desafio'].includes(valor)){this.perfil.opcoes.modo=valor;this.salvar();this.mostrar(E.OPCOES);}
   }
   escolherRecompensa(id) {
@@ -209,7 +213,7 @@ class Engine {
     const m=this.mundo,j=m.jogador,t=j.transformacao;
     m.tempo+=dt;this.aviso.tempo=Math.max(0,this.aviso.tempo-dt);
     atualizarDano(j,dt);atualizarMovimento(j,this.entrada,dt,this.eventos);this.combate.atualizarJogador(this,dt);
-    j.planando=this.atributos.podePlanar&&j.corpo.vy>0&&(this.entrada.ativa(A.pular)||this.entrada.ativa(A.planar));
+    j.planando=this.podePlanar(j);
     atualizarFisica(j,m,dt,this.eventos);atualizarAnimacao(j,dt);this.particulas.atualizar(j,dt);this.camera.atualizar(j,dt);
     this.mercadorPerto=Math.abs(t.x-this.mercador.x)<110&&Math.abs(t.y+t.altura-448)<60;
     if(this.entrada.consumir(A.interagir))this.abrirLoja();
@@ -255,6 +259,7 @@ class Engine {
       this.flutuar('BLOQUEADO', j.transformacao.x - 20, j.transformacao.y, '#8fd4ff'); return false;
     }
     this.corrida.danos++; this.combo = 1; this.comboContagem = 0; this.comboTempo = 0;
+    cancelarAtaque(c);
     if (sessao.vidas === 1 && c.fenix > 0) {
       c.fenix--; sessao.vidas = Math.min(this.atributos.coracoes, 2); j.animacao.invulneravel = 2;
       this.notificar('A fênix protegeu você! Cargas: ' + c.fenix, '#ffce70'); this.som('poder'); return true;
@@ -262,7 +267,10 @@ class Engine {
     if (!aplicarDano(j, sessao, this.eventos)) return false;
     j.animacao.invulneravel=this.atributos.protecao;
     this.flutuar('−1 ♥', j.transformacao.x, j.transformacao.y - 8, '#ff9f96');
-    if (inimigo) { j.corpo.vx = j.transformacao.x < inimigo.transformacao.x ? -180 : 180; j.corpo.vy = -200; }
+    if (origem !== 'queda') {
+      const lado=inimigo ? Math.sign(j.transformacao.x-inimigo.transformacao.x) || -j.controle.direcao : -j.controle.direcao;
+      j.corpo.vx=lado*B.recuoDano;j.corpo.vy=-B.saltoDano;
+    }
     if (this.atributos.espinhos) {
       const x = j.transformacao.x;
       for (let i = 0; i < this.inimigos.pool.itens.length; i++) {
@@ -272,21 +280,21 @@ class Engine {
       if (this.chefe?.ativo && Math.abs(this.chefe.transformacao.x - x) < 130) this.ferirChefe(this.danoAtual() * this.atributos.espinhos * .5);
     }
     if (sessao.vidas === 0) { this.perfil.totais.mortes++; this.salvar(); this.mostrar(E.FIM_DE_JOGO); }
-    else {
-      posicionarJogador(j, this.mundo.respawnX, this.mundo.respawnY);
-      c.dash = 0; c.ataque = 0; this.camera.focar(j); this.camera.abalar();
-    }
+
     return true;
   }
-  ferirInimigo(e, dano, origemX, processar = false) {
+  ferirInimigo(e, dano, origemX, processar = false, tipoGolpe = '') {
     if (!e.ativo || e.invulneravel > 0 || e.estado === 'submerso') return false;
     const critico = this.rng.proximo() < this.atributos.critico;
+    const finalizador = tipoGolpe === 'finalizador';
     if (critico) dano *= 2;
-    if (e.tipo === 'tatu' && Math.sign(origemX - e.transformacao.x) === e.controle.direcao && e.estado !== 'atordoado') dano *= .35;
-    e.vida -= dano; e.invulneravel = .08; e.estado = 'atordoado'; e.espera = B.atordoamento;
-    e.corpo.vx = origemX < e.transformacao.x ? 140 : -140;
+    if (tipoGolpe !== 'pogo' && e.tipo === 'tatu' && Math.sign(origemX - e.transformacao.x) === e.controle.direcao && e.estado !== 'atordoado') dano *= .35;
+    e.vida -= dano; e.invulneravel = .08; e.estado = 'atordoado';
+    if (!e.atordoadoPeloDash) e.espera = B.atordoamento;
+    const empurrao = finalizador ? B.empurraoComboFinal : B.empurraoGolpe;
+    e.corpo.vx = origemX < e.transformacao.x ? empurrao : -empurrao;
     this.flutuar(String(Math.ceil(dano)) + (critico ? '!' : ''), e.transformacao.x, e.transformacao.y - 10, critico ? '#ffde70' : '#fff5d4');
-    this.hitstop = this.semMovimento() ? 0 : 2 / 60;
+    this.pausarImpacto(finalizador ? B.hitstopComboFinal : B.hitstopGolpe);
     if (e.vida <= 0) this.eliminar(e);
     if (processar) this.processarAcerto();
     return true;
@@ -321,12 +329,21 @@ class Engine {
       this.chefe.invulneravel = 0; this.ferirChefe(this.danoAtual() * (1 + nivel * .2));
     }
   }
-  ferirChefe(dano) {
+  ferirChefe(dano, tipoGolpe = '') {
     const b = this.chefe; if (!b?.ativo || b.invulneravel > 0 || b.estado === 'dormindo') return false;
-    dano *= b.estado === 'recuperando' ? 1.3 : 1;
+    if (tipoGolpe === 'pogo') {
+      if (b.esperaPogo > 0) return false;
+      b.esperaPogo = B.recargaPogoChefe;
+    }
+    const aereo=tipoGolpe==='pogo'||tipoGolpe==='pisao';
+    if(aereo && b.estado!=='recuperando'){
+      if(b.aereosSeguidos>=B.aereosParaGuarda)dano*=B.fatorGuardaAlta;
+      b.aereosSeguidos++;
+    }else b.aereosSeguidos=0;
+    dano *= b.estado === 'recuperando' ? B.bonusRecuperacaoChefe : 1;
     b.vida = Math.max(0, b.vida - dano); b.invulneravel = .09;
     this.flutuar(String(Math.ceil(dano)), b.transformacao.x + 30, b.transformacao.y - 10, '#ffe1a0');
-    this.hitstop = this.semMovimento() ? 0 : 2 / 60;
+    this.pausarImpacto(tipoGolpe === 'finalizador' ? B.hitstopComboFinal : B.hitstopGolpe);
     if (b.vida === 0) {
       b.ativo = false; this.corrida.chefeVencido = true; this.perfil.totais.chefes++;
       this.pontuar(1000); this.xp(B.xpChefe + this.mundo.fase.numero * 12); this.particulas.emitir(b, 36);
@@ -335,15 +352,19 @@ class Engine {
     }
     return true;
   }
-  tiroMirado(x, y, tipo = 'coco', velocidade = B.velocidadeTiro, anguloExtra = 0) {
+  tiroMirado(x, y, tipo = 'coco', velocidade = B.velocidadeTiro, anguloExtra = 0, autor = null) {
     const p = this.mundo.jogador.transformacao;
     const angulo = Math.atan2(p.y + p.altura / 2 - y, p.x + p.largura / 2 - x) + anguloExtra;
-    this.projeteis.atirar(x, y, Math.cos(angulo) * velocidade, Math.sin(angulo) * velocidade, tipo, true, 1, tipo === 'coco' ? 100 : 0);
+    this.projeteis.atirar(x, y, Math.cos(angulo) * velocidade, Math.sin(angulo) * velocidade, tipo, true, 1, tipo === 'coco' ? 100 : 0, 0, 0, autor);
+  }
+  podePlanar(jogador) {
+    return this.atributos.podePlanar && jogador.combate.tipoAtaque !== 'pogo' && jogador.corpo.vy > 0 &&
+      (this.entrada.ativa(A.pular) || this.entrada.ativa(A.planar));
   }
   atualizarItens(dt) {
     const t = this.mundo.jogador.transformacao;
     for (let i = 0; i < this.mundo.itens.length; i++) {
-      const item = this.mundo.itens[i]; if (!item.ativo) continue;
+      const item = this.mundo.itens[i]; if (!item.ativo || item.tipo==='coracao' && sessao.vidas>=this.atributos.coracoes) continue;
       let dx = t.x + t.largura / 2 - item.x, dy = t.y + t.altura / 2 - item.y;
       const distancia = Math.hypot(dx, dy);
       if ((item.tipo === 'moeda' || item.tipo === 'ouro') && distancia < this.atributos.ima+(this.perfil.consumiveis.ima>0?200:0) && distancia > 1) {
@@ -363,14 +384,14 @@ class Engine {
     } else if (item.tipo === 'estrela') {
       this.corrida.estrelas++; this.pontuar(150); this.xp(B.xpEstrela);
       this.notificar('Estrela da Selva ' + this.corrida.estrelas + '/3', '#ffe38a');
-    } else if (item.tipo === 'coracao') sessao.vidas = Math.min(this.atributos.coracoes, sessao.vidas + 1);
+    } else if (item.tipo === 'coracao') { sessao.vidas = Math.min(this.atributos.coracoes, sessao.vidas + 1);this.flutuar('+1 ♥',j.transformacao.x,j.transformacao.y-8,'#ffb2b5'); }
     this.particulas.emitirBrilho(item.x??j.transformacao.x,item.y??j.transformacao.y,8);this.som('moeda');
   }
   atualizarPerigos(dt) {
     const m = this.mundo, t = m.jogador.transformacao;
     for (let i = 0; i < m.perigos.length; i++) {
       const p = m.perigos[i];
-      if (p.tipo === 'espinhos') { if (sobrepoe(t, p)) this.ferirJogador('espinhos'); }
+      if (p.tipo === 'espinhos') { if (sobrepoe(p,t,C.folgaDano)) this.ferirJogador('espinhos'); }
       else if (p.tipo === 'pedras') {
         p.espera -= dt;
         if (p.espera <= 0 && Math.abs(t.x - p.x) < 180) {
@@ -380,10 +401,11 @@ class Engine {
     }
     for (let i = 0; i < m.checkpoints.length; i++) {
       const p = m.checkpoints[i];
-      if (!p.aceso && Math.abs(t.x - p.x) < 32 && Math.abs(t.y + t.altura - p.y) < 60) {
+      if (!p.aceso && p.x >= m.respawnX && Math.abs(t.x - p.x) < 32 && Math.abs(t.y + t.altura - p.y) < 60) {
         p.aceso = true; m.respawnX = p.x; m.respawnY = p.y - t.altura;
+        const antes=sessao.vidas;
         sessao.vidas = Math.min(this.atributos.coracoes, sessao.vidas + B.checkpointCura);
-        this.notificar('CHECKPOINT · +1 coração', '#b7ee9c'); this.som('poder');
+        this.notificar(sessao.vidas>antes?'Totem aceso · +1 coração':'Totem aceso · retorno marcado', '#b7ee9c'); this.som('poder');
       }
     }
   }
@@ -413,7 +435,6 @@ class Engine {
   atualizar(dt) {
     if(this.suspenso)return;
     const estado=this.estados.atual;
-    if(estado===E.MENU||estado===E.SAIU)this.tempoTitulo+=dt;
     if(this.entrada.consumir(A.som))this.agir('som');
     if(this.entrada.consumir(A.pausa)){
       if(estado===E.LOJA)this.agir('fecharLoja');
@@ -441,13 +462,15 @@ class Engine {
     if (this.comboTempo === 0) { this.combo = 1; this.comboContagem = 0; }
     atualizarDano(j, dt); atualizarPlataformas(m, dt);
     atualizarMovimento(j, this.entrada, dt, this.eventos); this.combate.atualizarJogador(this, dt);
-    j.planando=this.atributos.podePlanar&&j.corpo.vy>0&&(this.entrada.ativa(A.pular)||this.entrada.ativa(A.planar));
+    j.planando=this.podePlanar(j);
     if(this.perfil.consumiveis.ima>0){this.perfil.consumiveis.ima=Math.max(0,this.perfil.consumiveis.ima-dt);this.sujo=true;}
     atualizarFisica(j, m, dt, this.eventos);
     if (t.y > m.altura + C.margemQueda) {
       this.corrida.quedas++; this.ferirJogador('queda');
       if (sessao.vidas > 0) {
-        posicionarJogador(j, m.respawnX, m.respawnY); j.combate.dash = 0;
+        posicionarJogador(j, m.respawnX, m.respawnY);
+        const onde=m.respawnX===m.inicioX?'início da trilha':'último totem';
+        this.notificar('Queda · retorno ao '+onde,'#ffd4a4');
         this.camera.focar(j); this.camera.abalar();
       }
     }
@@ -460,7 +483,7 @@ class Engine {
       const p = this.textos.itens[i]; if (!p.ativo) continue;
       p.tempo -= dt; p.y -= 32 * dt; if (p.tempo <= 0) p.ativo = false;
     }
-    if (t.x + t.largura > m.portalX && t.x < m.portalX + C.tile && t.y + t.altura > m.portalY - 96 && t.y < m.portalY) {
+    if (t.x + t.largura > m.portalX && t.y + t.altura > m.portalY - 96 && t.y < m.portalY) {
       if (this.corrida.chefeVencido) this.concluirFase();
       else if (this.aviso.tempo === 0) this.notificar('Derrote o guardião para abrir o portal.', '#ffb796');
     }
@@ -470,7 +493,11 @@ class Engine {
   }
   desenhar(alpha) {
     const interpolacao = this.estados.atual === E.JOGANDO && this.hitstop === 0 ? alpha : 1;
-    this.renderizador.desenhar(this.mundo, this.camera, this.particulas, interpolacao, this);
+    const estado=this.estados.atual;
+    if(estado!==E.MENU && (estado===E.JOGANDO || this.ultimaTelaDesenhada!==estado || this.renderizador.tamanhoMudou)){
+      this.renderizador.desenhar(this.mundo,this.camera,this.particulas,interpolacao,this);
+    }
+    this.ultimaTelaDesenhada=estado;
     this.interface.atualizar(sessao, this.mundo, this.estados.atual, this);
   }
   destruir() {

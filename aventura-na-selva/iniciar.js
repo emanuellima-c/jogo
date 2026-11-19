@@ -12,7 +12,7 @@
     falhou = true;
     aviso.hidden = false;
     aviso.setAttribute('role', 'alert');
-    aviso.textContent = 'Não foi possível abrir o jogo. Extraia o ZIP inteiro e mantenha index.html, iniciar.js e as pastas css, src e compat juntos. Depois reabra index.html. Detalhe: ' + (erro?.message || String(erro));
+    aviso.textContent = 'Não foi possível abrir o jogo. Extraia o ZIP inteiro e mantenha index.html, iniciar.js e as pastas arte, css, src e compat juntos. Depois reabra index.html. ' + (erro?.message || String(erro));
     palco.setAttribute('aria-busy', 'false');
     palco.dataset.inicializacao = 'erro';
   }
@@ -69,10 +69,11 @@
       if (!registro.arquivos.length) throw new Error('A lista de arquivos do jogo está vazia.');
       await Promise.all(registro.arquivos.map(carregarScript));
       if (falhou) return;
-      registro.usar('src/main.js');
+      await registro.usar('src/main.js').pronto;
     } else {
       // Live Server e hospedagens continuam usando os módulos ES originais.
-      await import(new URL('src/main.js', base).href);
+      const jogo = await import(new URL('src/main.js', base).href);
+      await jogo.pronto;
     }
     if (falhou) return;
     encerrada = true;

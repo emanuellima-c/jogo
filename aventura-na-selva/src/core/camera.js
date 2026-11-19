@@ -1,20 +1,21 @@
 import { CONFIG as C } from './configuracoes.js';
 class Camera {
   constructor(larguraMundo, reduzirMovimento = false) {
-    this.limite = Math.max(0, larguraMundo - C.largura);
+    this.larguraMundo=larguraMundo;this.enquadrar(C.largura);
     this.x = 0; this.anteriorX = 0; this.trauma = 0; this.tempo = 0;
     this.reduzirMovimento = reduzirMovimento;
   }
+  enquadrar(largura) { this.largura=largura;this.limite=Math.max(0,this.larguraMundo-largura); }
   focar(jogador) {
     const t = jogador.transformacao;
-    this.x = Math.max(0, Math.min(this.limite, t.x + t.largura / 2 - C.largura / 2));
+    this.x = Math.max(0, Math.min(this.limite, t.x + t.largura / 2 - this.largura / 2));
     this.anteriorX = this.x; this.trauma = 0;
   }
   atualizar(jogador, dt) {
     this.anteriorX = this.x; this.tempo += dt;
     const t = jogador.transformacao;
     const alvo = Math.max(0, Math.min(this.limite,
-      t.x + t.largura / 2 - C.largura / 2 + jogador.corpo.vx * C.cameraAntecipacao));
+      t.x + t.largura / 2 - this.largura / 2 + jogador.corpo.vx * C.cameraAntecipacao));
     this.x += (alvo - this.x) * (1 - Math.exp(-C.cameraSuavidade * dt));
     this.trauma = Math.max(0, this.trauma - C.cameraDecaimento * dt);
   }

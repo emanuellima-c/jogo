@@ -7,6 +7,7 @@ function criarInimigoVazio() {
   const e = criarJogador(0, 0);
   Object.assign(e, { ativo: false, id: 0, tipo: 'macaco', dados: null, vida: 0, vidaMaxima: 0,
     estado: 'patrulha', espera: 0, idade: 0, alerta: 0, recarga: 0, invulneravel: 0,
+    atordoadoPeloDash: false, geracao: 0,
     ancoraX: 0, ancoraY: 0, ultimoGolpe: -1, direcaoAtaque: 1, mergulhando: false, origem: true });
   return e;
 }
@@ -16,6 +17,7 @@ function ativarInimigo(e, tipo, x, y, fase, ciclo, seed = 0, origem = true) {
   const variante=VARIANTES[Math.max(0,Math.min(4,Math.floor((fase-1)/3)))];
   e.nome=variante.nomes[tipo]||d.nome;e.cor=variante.cor||d.cor;
   e.ativo = true; e.tipo = tipo; e.dados = d; e.origem = origem;
+  e.geracao++; e.atordoadoPeloDash = false;
   t.largura = d.largura; t.altura = d.altura;
   t.x = t.anteriorX = x; t.y = t.anteriorY = ['aranha','besouro','piranha'].includes(tipo) ? y : y - d.altura;
   e.ancoraX = x; e.ancoraY = t.y; e.idade = (seed % 100) / 17;

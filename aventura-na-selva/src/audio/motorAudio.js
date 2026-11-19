@@ -1,5 +1,5 @@
 import { criarTrilha, frequencia } from './trilhas.js';
-const EFEITOS={pulo:[360,710,.1],moeda:[1050,1640,.08],ataque:[210,90,.09],dano:[180,52,.22],dash:[560,130,.14],chefe:[90,55,.2],vitoria:[520,1040,.3],nivel:[660,1320,.22],poder:[780,1560,.3],compra:[540,1080,.16],puzzle:[880,1760,.3],menu:[620,820,.055],erro:[160,110,.12]};
+const EFEITOS={pulo:[360,710,.1],moeda:[1050,1640,.08],ataque:[210,90,.09],dano:[180,52,.22],dash:[560,130,.14],dashPerfeito:[740,1980,.18],chefe:[90,55,.2],vitoria:[520,1040,.3],nivel:[660,1320,.22],poder:[780,1560,.3],compra:[540,1080,.16],puzzle:[880,1760,.3],menu:[620,820,.055],erro:[160,110,.12]};
 class MotorAudio {
   constructor(){this.contexto=null;this.mestre=null;this.ligado=true;this.volume=.65;this.tema='menu';this.trilha=criarTrilha('menu');this.passo=0;this.proximaNota=0;this.intervalo=0;this.pausado=false;this.vozes=new Set();}
   iniciar(){

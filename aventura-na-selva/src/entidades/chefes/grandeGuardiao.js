@@ -29,7 +29,7 @@ function criarChefe(mundo, perfil) {
   b.tipo = 'chefe'; b.transformacao.largura = 92; b.transformacao.altura = 86;
   Object.assign(b, { ativo: true, dados: CHEFES[mundo.fase.mundo], vida: 0, vidaMaxima: 0,
     estado: 'dormindo', fase: 1, espera: 1, ataqueAtual: 'tiros', contador: 0, distancia: 0,
-    invulneravel: 0, ultimoGolpe: -1, alvoX: 0, direcaoAtaque: -1, avisoFase: 1 });
+    invulneravel: 0, esperaPogo: 0, aereosSeguidos: 0, ultimoGolpe: -1, alvoX: 0, direcaoAtaque: -1, avisoFase: 1, atordoadoPeloDash: false });
   b.vida = b.vidaMaxima = Math.round((B.vidaChefe + mundo.fase.mundo * B.vidaPorMundo) * (1 + (perfil.ciclo - 1) * .3));
   b.corpo.noChao = true;
   return b;
@@ -39,7 +39,7 @@ function preparar(b, engine) {
   b.distancia = Math.abs(p.x - b.transformacao.x);
   b.ataqueAtual = ARVORE.executar(b); b.estado = 'aviso';
   b.espera = Math.max(.65, B.avisoChefe - (b.fase - 1) * .1);
-  b.alvoX = Math.max(340, Math.min(engine.mundo.largura - 180, p.x));
+  b.alvoX = Math.max(B.limiteEsquerdoChefe, Math.min(engine.mundo.largura - 180, p.x));
   b.direcaoAtaque = p.x < b.transformacao.x ? -1 : 1;
   b.controle.direcao = b.direcaoAtaque; b.corpo.vx = 0;
 }
@@ -48,18 +48,18 @@ function executarAtaque(b, engine) {
   b.contador++;
   if (b.ataqueAtual === 'tiros') {
     const quantidade = b.fase + 1;
-    for (let i = 0; i < quantidade; i++) engine.tiroMirado(centroX, t.y + 28, b.dados.tipo === 'aranha' ? 'teia' : 'coco', 245 + b.fase * 25, (i - (quantidade - 1) / 2) * .16);
+    for (let i = 0; i < quantidade; i++) engine.tiroMirado(centroX, t.y + 28, b.dados.tipo === 'aranha' ? 'teia' : 'coco', 245 + b.fase * 25, (i - (quantidade - 1) / 2) * .16, b);
     b.estado = 'recuperando'; b.espera = B.recuperacaoChefe;
   } else if (b.ataqueAtual === 'chuva') {
     for (let i = -b.fase; i <= b.fase; i++) {
       const x = Math.max(350, Math.min(engine.mundo.largura - 100, b.alvoX + i * 100));
-      engine.projeteis.atirar(x, -20, 0, 40, 'pedra', true, 1, 900, .85 + Math.abs(i) * .12);
+      engine.projeteis.atirar(x, -20, 0, 40, 'pedra', true, 1, 900, .85 + Math.abs(i) * .12, 0, b);
     }
     b.estado = 'recuperando'; b.espera = 1.5;
   } else if (b.ataqueAtual === 'invocar') {
     let vivos = 0;
     for (let i = 0; i < engine.inimigos.pool.itens.length; i++) if (engine.inimigos.pool.itens[i].ativo) vivos++;
-    for (let i = 0; i < Math.max(0, Math.min(b.fase + 1, 5 - vivos)); i++)
+    for (let i = 0; i < Math.max(0, Math.min(b.fase + 1, B.limiteInvocados - vivos)); i++)
       engine.inimigos.criar(i % 2 ? 'macaco' : 'besouro', t.x - 90 - i * 75, i % 2 ? 448 : 280, engine.mundo.fase.numero, engine.perfil.ciclo, b.contador + i, false);
     b.estado = 'recuperando'; b.espera = 1.8;
   } else if (b.ataqueAtual === 'investida') {
@@ -71,39 +71,53 @@ function executarAtaque(b, engine) {
   }
   engine.som('chefe');
 }
-function atualizarChefe(engine, dt) {
-  const b = engine.chefe; if (!b?.ativo) return;
-  const t = b.transformacao, m = engine.mundo;
-  t.anteriorX = t.x; t.anteriorY = t.y;
-  b.invulneravel = Math.max(0, b.invulneravel - dt);
-  b.fase = b.vida / b.vidaMaxima > .66 ? 1 : b.vida / b.vidaMaxima > .33 ? 2 : 3;
-  if (b.fase !== b.avisoFase) { b.avisoFase = b.fase; engine.notificar(b.dados.nome + ' · FASE ' + b.fase, '#ffb56f'); }
-  if (b.estado === 'dormindo') {
-    if (m.jogador.transformacao.x > 300) { preparar(b, engine); engine.notificar(b.dados.nome, '#ffce70'); }
+function atualizarAcao(b, engine, dt) {
+  if (b.atordoadoPeloDash) {
+    b.espera -= dt;
+    if (b.espera <= 0) { b.atordoadoPeloDash = false; preparar(b, engine); }
     return;
   }
   b.espera -= dt * engine.atributos.ritmoInimigo;
   if (b.estado === 'aviso') { if (b.espera <= 0) executarAtaque(b, engine); }
   else if (b.estado === 'recuperando') { b.corpo.vx = 0; if (b.espera <= 0) preparar(b, engine); }
-  else if (b.estado === 'investida') {
-    if (b.espera <= 0) { b.estado = 'recuperando'; b.espera = 1; b.corpo.vx = 0; }
+  else if (b.estado === 'investida' && b.espera <= 0) {
+    b.estado = 'recuperando'; b.espera = B.recuperacaoChefe; b.corpo.vx = 0;
   }
+}
+function atualizarChefe(engine, dt) {
+  const b = engine.chefe; if (!b?.ativo) return;
+  const t = b.transformacao, m = engine.mundo;
+  t.anteriorX = t.x; t.anteriorY = t.y;
+  b.invulneravel = Math.max(0, b.invulneravel - dt);
+  b.esperaPogo = b.esperaPogo <= dt + Number.EPSILON ? 0 : b.esperaPogo - dt;
+  b.fase = b.vida / b.vidaMaxima > .66 ? 1 : b.vida / b.vidaMaxima > .33 ? 2 : 3;
+  if (b.fase !== b.avisoFase) { b.avisoFase = b.fase; engine.notificar(b.dados.nome + ' · FASE ' + b.fase, '#ffb56f'); }
+  if (b.estado === 'dormindo') {
+    if (m.jogador.transformacao.x > Math.max(300,t.x-engine.camera.largura*.62)) { preparar(b, engine); engine.notificar(b.dados.nome, '#ffce70'); }
+    return;
+  }
+  atualizarAcao(b, engine, dt);
+  if(b.estado==='recuperando')b.aereosSeguidos=0;
   const estava = b.corpo.noChao;
   b.corpo.vy = Math.min(C.quedaMaxima, b.corpo.vy + C.gravidade * dt);
   t.x += b.corpo.vx * dt; resolverX(b, m);
-  t.x = Math.max(340, Math.min(m.largura - 150, t.x));
+  t.x = limitarPosicaoChefe(t.x, m);
   b.corpo.noChao = false; t.y += b.corpo.vy * dt; resolverY(b, m);
   if (b.estado === 'saltando' && b.corpo.noChao && !estava) {
-    b.estado = 'recuperando'; b.espera = 1.1; b.corpo.vx = 0;
+    b.estado = 'recuperando'; b.espera = B.recuperacaoChefe; b.corpo.vx = 0;
     engine.camera.abalar(); engine.particulas.emitir(b, 18);
     for (let direcao = -1; direcao <= 1; direcao += 2)
-      engine.projeteis.atirar(t.x + t.largura / 2, 437, direcao * (250 + b.fase * 40), 0, 'tremor');
+      engine.projeteis.atirar(t.x + t.largura / 2, 437, direcao * (250 + b.fase * 40), 0, 'tremor', true, 1, 0, 0, 0, b);
     if (b.fase === 3 && b.ataqueAtual === 'tremor') {
-      engine.projeteis.atirar(m.jogador.transformacao.x + 12, -30, 0, 0, 'pedra', true, 1, 1000, 1);
+      engine.projeteis.atirar(m.jogador.transformacao.x + 12, -30, 0, 0, 'pedra', true, 1, 1000, 1, 0, b);
     }
   }
   // A arena fecha durante o combate, mas permite respawn fora dela.
   if (m.jogador.transformacao.x > 300 && m.jogador.transformacao.x < 322) m.jogador.transformacao.x = 322;
 }
 
-export { criarChefe, atualizarChefe };
+function limitarPosicaoChefe(x, mundo) {
+  return Math.max(B.limiteEsquerdoChefe, Math.min(mundo.largura - B.margemDireitaChefe, x));
+}
+
+export { criarChefe, atualizarChefe, limitarPosicaoChefe };

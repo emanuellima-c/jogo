@@ -24,10 +24,10 @@ class SistemaParticulas {
       p.tamanho = this.rng.entre(2, 5);
     }
   }
-  emitirBrilho(x,y,quantidade=8){
+  emitirBrilho(x,y,quantidade=8,cor='#ffe99b'){
     for(let i=0;i<quantidade;i++){
       const p=this.pool.obter();if(!p)break;p.tipo=2;p.x=p.anteriorX=x;p.y=p.anteriorY=y;
-      p.vx=this.rng.entre(-100,100);p.vy=this.rng.entre(-130,25);p.duracao=p.vida=.5;p.tamanho=this.rng.entre(2,4);p.cor='#ffe99b';
+      p.vx=this.rng.entre(-100,100);p.vy=this.rng.entre(-130,25);p.duracao=p.vida=.5;p.tamanho=this.rng.entre(2,4);p.cor=cor;
     }
   }
   atualizar(jogador, dt) {

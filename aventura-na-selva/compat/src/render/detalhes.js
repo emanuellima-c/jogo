@@ -3,38 +3,63 @@ globalThis.AventuraModulos.registrar("src/render/detalhes.js", function (exports
 "use strict";
 const { elipse, poligono, ruido } = usar("src/render/arte.js");
 // Cores de superfície e subsolo. O chão sólido permanece perfeitamente legível.
-const SOLOS=[['#273f40','#42614b','#91bb72','#d4dda0'],['#3c4357','#646579','#b2b79c','#e8d4a6'],['#855745','#b68059','#e1b97d','#ffe0a4'],['#3b5872','#7693a8','#c3e2e5','#f3ffff'],['#282b3e','#4e3d4b','#a76c59','#efb07e']];
+const SOLOS=[
+ ['#242637','#384347','#4e5d57','#447753','#76a862','#c4df8b'],
+ ['#29273e','#473e59','#655973','#726181','#a89ba5','#dfc3b0'],
+ ['#563343','#854b4d','#a9634e','#bf794c','#e1a364','#ffe09a'],
+ ['#23324b','#37516b','#52748b','#78a3b1','#a4d6d6','#ecfff1'],
+ ['#272334','#443444','#654654','#8e5759','#c0755b','#ffbc78']
+];
 function pintarTerreno(c,m){
  const tipo=m.fase.mundo??0,p=SOLOS[tipo];
  for(let y=0;y<m.linhas;y++)for(let x=0;x<m.colunas;x++){
-  if(!m.tiles[y*m.colunas+x])continue;const px=x*32,py=y*32,s=x+y*73,topo=!m.solido(x,y-1);
-  c.fillStyle=p[0];c.fillRect(px,py,32,32);c.fillStyle=p[1];c.fillRect(px+(tipo===1?1:0),py+(tipo===1?1:0),tipo===1?30:32,tipo===1?30:32);
-  if(tipo===1){c.fillStyle='#353c5055';c.fillRect(px,py+27,32,3);c.fillRect(px+(y%2?8:21),py,2,28);c.fillStyle='#bbb3ae33';c.fillRect(px+3,py+3,18,1);}
-  else if(tipo===2){c.fillStyle='#e8b37f66';c.fillRect(px,py+10,32,2);c.fillRect(px,py+24,32,1);c.fillStyle='#804b4266';c.fillRect(px+3,py+15,23,2);}
-  else{
-   for(let k=0;k<3;k++){const dx=Math.floor(ruido(s+k*4)*25),dy=Math.floor(ruido(s+k*4+1)*25);c.fillStyle=k%2?'#081f3433':'#d2c2a41a';c.fillRect(px+dx,py+dy,4+ruido(s+k+8)*7,3);}
+  if(!m.tiles[y*m.colunas+x])continue;
+  const px=x*32,py=y*32,n=x*31+y*101;
+  c.fillStyle=p[0];c.fillRect(px,py,32,32);
+  // Faces escalonadas e cortes de luz. As juntas alternam entre as linhas.
+  for(let fila=0;fila<2;fila++){
+   const yy=py+fila*16,recorte=Math.floor(ruido(n+fila)*3)*2;
+   const inicio=(x+y+fila)%2?2:0;
+   poligono(c,p[1],[px+inicio,yy+4,px+6+recorte,yy+1,px+27,yy+1,px+31,yy+4,px+29,yy+12,px+22,yy+15,px+3,yy+14]);
+   c.fillStyle=p[2];c.fillRect(px+6+recorte,yy+1,13-recorte,2);
+   c.fillStyle=p[0];c.fillRect(px+21-recorte,yy+10,8,2);
+   if(tipo===4&&ruido(n+fila)>.77){c.fillStyle='#d47c59';c.fillRect(px+5,yy+13,7,2);c.fillRect(px+11,yy+11,4,2);}
   }
-  if(tipo===4&&ruido(s)>.6){c.strokeStyle='#d7855d77';c.lineWidth=1;c.beginPath();c.moveTo(px+3,py+9);c.lineTo(px+16,py+14);c.lineTo(px+12,py+24);c.stroke();}
-  if(!m.solido(x-1,y)){c.fillStyle='#0d23344d';c.fillRect(px,py,4,32);}if(!m.solido(x+1,y)){c.fillStyle='#081a3166';c.fillRect(px+28,py,4,32);}
-  if(topo){
-   c.fillStyle='#172e3b';c.fillRect(px,py,32,9);c.fillStyle=p[2];c.fillRect(px,py,32,5);c.fillStyle=p[3];c.fillRect(px,py,32,2);
-   if(tipo===0){c.strokeStyle='#263d3b';c.lineWidth=2;c.beginPath();c.moveTo(px+11,py+8);c.lineTo(px+15,py+18);c.lineTo(px+9,py+27);c.moveTo(px+15,py+18);c.lineTo(px+24,py+21);c.stroke();for(let k=0;k<6;k++){const dx=k*6,h=3+ruido(s+k)*5;poligono(c,k%2?p[2]:'#799c62',[px+dx,py+2,px+dx-2,py-h,px+dx+5,py+2]);}c.fillStyle='#78995f';c.fillRect(px+5,py+5,7,5);}
-   if(tipo===3){for(let k=0;k<3;k++){const dx=4+k*10;poligono(c,'#a9d5df',[px+dx,py+5,px+dx+3,py+15+ruido(s+k)*7,px+dx+6,py+5]);}}
-   if(tipo===4){c.fillStyle='#db986f';c.fillRect(px+4,py+3,8,1);}
-   if(ruido(s+220)>.7&&tipo!==4){
-    const dx=px+12;c.fillStyle=tipo===3?'#6a91aa':'#4d8264';c.fillRect(dx,py-11,2,11);
-    elipse(c,dx-3,py-6,5,2,tipo===3?'#c1dbe1':'#739b74');elipse(c,dx+4,py-9,5,2,tipo===3?'#d3e7e6':'#8bb983');
-    if(tipo===0||tipo===2)elipse(c,dx+1,py-13,3,3,tipo===0?'#e1b490':'#f5d59d');
+  if(!m.solido(x-1,y)){c.fillStyle=p[2];c.fillRect(px,py+2,3,27);}
+  if(!m.solido(x+1,y)){c.fillStyle=p[0];c.fillRect(px+28,py,4,32);}
+  if(m.solido(x,y-1))continue;
+  // A linha contínua e clara corresponde exatamente ao topo da colisão.
+  c.fillStyle=p[0];c.fillRect(px,py,32,11);c.fillStyle=p[3];c.fillRect(px,py+1,32,7);
+  c.fillStyle=p[4];c.fillRect(px,py,32,4);c.fillStyle=p[5];c.fillRect(px,py,32,2);
+  for(let k=0;k<3;k++){
+   const ex=px+k*10+2,cauda=4+Math.floor(ruido(n+k)*6)*2;
+   if(tipo===0||tipo===3){
+    poligono(c,p[3],[ex,py+5,ex+8,py+5,ex+5,py+cauda+5,ex+2,py+cauda+3]);
+    c.fillStyle=p[4];c.fillRect(ex+2,py+5,2,cauda/2);
    }
+  }
+  if(tipo===0&&ruido(n+27)>.61){
+   const h=6+Math.round(ruido(n)*4)*2;
+   poligono(c,p[3],[px+14,py,px+7,py-h,px+13,py-h+4,px+17,py]);
+   poligono(c,p[4],[px+14,py,px+17,py-h-1,px+20,py-h+1,px+18,py]);
+   if(ruido(n+8)>.64){c.fillStyle='#ed998b';c.fillRect(px+15,py-h-4,6,4);c.fillStyle='#ffdb98';c.fillRect(px+17,py-h-4,2,2);}
   }
  }
 }
 function desenharPlataforma(c,p,x,y,tipo){
- c.fillStyle='#183846';c.fillRect(x-1,y,p.largura+2,p.altura+2);
- c.fillStyle=p.tipo==='fragil'?(p.acionada?'#bb7762':'#a17c58'):tipo===3?'#749bad':'#537f70';c.fillRect(x,y+2,p.largura,p.altura-1);
- c.fillStyle=tipo===3?'#e0f5f0':'#b6cc91';c.fillRect(x,y,p.largura,3);
- c.fillStyle='#e4c28c';for(let dx=7;dx<p.largura-3;dx+=18)c.fillRect(x+dx,y+6,2,3);
- if(p.tipo==='fragil'){c.strokeStyle='#4a4b4b';c.lineWidth=1;c.beginPath();c.moveTo(x+20,y+3);c.lineTo(x+15,y+8);c.lineTo(x+25,y+12);c.stroke();}
+ const solo=SOLOS[tipo??0],fragil=p.tipo==='fragil',movel=p.tipo==='horizontal'||p.tipo==='vertical';
+ const topo=fragil?'#ffd38e':movel?'#97e1cf':solo[5],cor=fragil?'#986950':movel?'#396b70':solo[2];
+ x=Math.round(x);y=Math.round(y);
+ c.fillStyle='#292638';c.fillRect(x-1,y,p.largura+2,p.altura+2);
+ c.fillStyle=cor;c.fillRect(x+1,y+2,p.largura-2,p.altura-3);
+ for(let i=2;i<p.largura-4;i+=18){
+  const w=Math.min(15,p.largura-i-2);c.fillStyle=fragil?'#b58257':movel?'#51878a':solo[3];
+  c.fillRect(x+i,y+4,w,5);c.fillStyle='#232839';c.fillRect(x+i+w-1,y+7,2,4);
+ }
+ c.fillStyle=topo;c.fillRect(x,y,p.largura,3);c.fillStyle=fragil?'#805349':movel?'#8ab6ab':solo[3];
+ c.fillRect(x+9,y+p.altura,12,4);c.fillRect(x+p.largura-21,y+p.altura,12,4);
+ if(fragil){c.strokeStyle=p.acionada?'#ffe4a3':'#49394b';c.lineWidth=p.acionada?3:2;c.beginPath();c.moveTo(x+p.largura/2,y);c.lineTo(x+p.largura/2-6,y+5);c.lineTo(x+p.largura/2+1,y+9);c.lineTo(x+p.largura/2-2,y+13);c.stroke();}
+ if(movel){c.fillStyle=topo;for(const lado of [-1,1])poligono(c,topo,[x+p.largura/2+lado*10,y+8,x+p.largura/2+lado*4,y+5,x+p.largura/2+lado*4,y+11]);}
 }
 function desenharPortal(c,x,y,tempo,aberto,descanso,brilho){
  if(brilho){c.globalAlpha=aberto?.3:.1;c.drawImage(brilho,x-45,y-140,150,150);c.globalAlpha=1;}
@@ -48,14 +73,37 @@ function desenharPortal(c,x,y,tempo,aberto,descanso,brilho){
  c.font='bold 9px system-ui';c.textAlign='center';c.fillStyle='#fff1c5';c.fillText(descanso?'CONTINUE A JORNADA':aberto?'PORTAL DE AURORA':'DERROTE O GUARDIÃO',x+28,y-122);c.textAlign='left';
 }
 function desenharMoeda(c,p,x,y,tempo,i,brilho){
- const ouro=p.tipo==='ouro',r=5+Math.abs(Math.sin(tempo*3+i))*3;
- if(brilho&&ouro){c.globalAlpha=.3;c.drawImage(brilho,x-23,y-23,46,46);c.globalAlpha=1;}
- elipse(c,x,y,r+1,10,'#624d3e');elipse(c,x,y,r,9,ouro?'#edb45d':'#afd6ba');elipse(c,x,y-1,Math.max(1,r-2),6,ouro?'#ffdf8a':'#d7ebc0');
- c.fillStyle=ouro?'#b9864e':'#668f7e';c.fillRect(x-1,y-4,2,8);c.fillStyle='#fff4ca';c.fillRect(x-r+2,y-5,1,4);
- if((tempo+i)%3<.4){c.fillStyle='#ffefbb';c.fillRect(x+9,y-12,5,1);c.fillRect(x+11,y-14,1,5);}
+ const ouro=p.tipo==='ouro',r=Math.round(4+Math.abs(Math.sin(tempo*3+i))*4);
+ x=Math.round(x);y=Math.round(y);
+ const esc=ouro?'#643854':'#624038',meio=ouro?'#dc8951':'#dd9b47',luz=ouro?'#ffe683':'#ffd17d';
+ poligono(c,esc,[x-r+2,y-10,x+r-2,y-10,x+r+1,y-6,x+r+1,y+5,x+r-2,y+10,x-r+2,y+10,x-r-1,y+6,x-r-1,y-6]);
+ c.fillStyle=meio;c.fillRect(x-r+1,y-7,2*r-1,14);c.fillStyle=luz;c.fillRect(x-r+2,y-8,Math.max(2,2*r-4),3);c.fillRect(x-r+1,y-5,2,9);
+ c.fillStyle=ouro?'#fff2b5':'#fbd991';c.fillRect(x-1,y-5,3,9);
+ if(ouro){estrelaMoeda(c,x+8,y-9,tempo+i);}
+
+}
+function estrelaMoeda(c,x,y,tempo){if(tempo%1.7>.55)return;c.fillStyle='#ffedb0';c.fillRect(x-3,y,7,2);c.fillRect(x,y-3,2,7);}
+function desenharProjetil(c,p,x,y){
+ const w=p.largura,h=p.altura;
+ if(p.tipo==='tremor'||p.tipo==='onda'){
+  const onda=p.tipo==='onda';
+  poligono(c,onda?'#2b5369':'#5b3542',[x-2,y+h,x+2,y+h*.32,x+w*.38,y+h*.55,x+w*.65,y-3,x+w,y+h]);
+  poligono(c,onda?'#b2f5e2':'#f7bd80',[x+2,y+h-1,x+w*.38,y+h*.68,x+w*.63,y+1,x+w*.76,y+h-1]);
+ }else if(p.tipo==='teia'){
+  const cx=x+w/2,cy=y+h/2;
+  elipse(c,cx,cy,w*.65,h*.65,'#513d68');c.strokeStyle='#efcefd';c.lineWidth=2;
+  c.strokeRect(x+1,y+1,w-2,h-2);c.beginPath();c.moveTo(cx,y-1);c.lineTo(cx,y+h+1);
+  c.moveTo(x-1,cy);c.lineTo(x+w+1,cy);c.stroke();
+ }else{
+  const pedra=p.tipo==='pedra';
+  poligono(c,'#342b41',[x+2,y,x+w-3,y,x+w,y+4,x+w,y+h-3,x+w-5,y+h,x+1,y+h-2,x-1,y+4]);
+  poligono(c,pedra?'#a2878f':'#c28b64',[x+3,y+2,x+w-4,y+1,x+w-2,y+5,x+w-4,y+h-3,x+2,y+h-4]);
+  c.fillStyle=pedra?'#efd0b1':'#f3c88b';c.fillRect(x+2,y+2,Math.max(2,w*.4),2);
+ }
 }
 Object.defineProperty(exports, "pintarTerreno", { enumerable: true, get: () => pintarTerreno });
 Object.defineProperty(exports, "desenharPlataforma", { enumerable: true, get: () => desenharPlataforma });
 Object.defineProperty(exports, "desenharPortal", { enumerable: true, get: () => desenharPortal });
 Object.defineProperty(exports, "desenharMoeda", { enumerable: true, get: () => desenharMoeda });
+Object.defineProperty(exports, "desenharProjetil", { enumerable: true, get: () => desenharProjetil });
 });

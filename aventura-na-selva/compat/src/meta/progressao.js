@@ -1,6 +1,7 @@
 // Gerado a partir de src/meta/progressao.js. Edite o original e execute npm run preparar.
 globalThis.AventuraModulos.registrar("src/meta/progressao.js", function (exports, usar) {
 "use strict";
+const { CONFIG: C } = usar("src/core/configuracoes.js");
 const { PODERES, PODER_POR_ID, RARIDADES } = usar("src/dados/poderes.js");
 const { Aleatorio } = usar("src/core/aleatorio.js");
 function criarPerfil() {
@@ -30,14 +31,14 @@ function estatisticas(perfil) {
   return {
     coracoes: modo === 'desafio' ? 1 : Math.min(10, (modo === 'relaxado' ? 5 : 3) + n('vigor') + (m.resistencia || 0) + Math.floor((perfil.nivel - 1) / 5)),
     dano: 16 * (1 + (perfil.nivel - 1) * .07 + n('forca') * .15),
-    velocidade: Math.min(375, 278 * (1 + n('botas') * .035 + (m.velocidade || 0) * .03)),
-    impulso: Math.min(760, 650 * (1 + n('impulso') * .025 + (m.pulo || 0) * .025)),
+    velocidade: Math.min(375, C.velocidade * (1 + n('botas') * .035 + (m.velocidade || 0) * .03)),
+    impulso: Math.min(760, C.impulso * (1 + n('impulso') * .025 + (m.pulo || 0) * .025)),
     alcance: Math.min(170, 54 + n('alcance') * 8), ima: Math.min(300, 42 + n('alcance') * 22),
     intervaloAtaque: Math.max(.17, .42 / (1 + n('ritmo') * .1)),
     critico: Math.min(.6, .03 + n('critico') * .08),
     saltosExtras: aprendidas.duplo || perfil.legado && n('duplo') ? Math.max(1, Math.min(2, Math.ceil(n('duplo') / 3))) : 0,
     podeDash: !!(aprendidas.dash || perfil.legado), podePlanar: !!aprendidas.planar,
-    protecao: Math.min(3.5,1.5 + (m.resistencia || 0) * .12),
+    protecao: Math.min(3.5,C.invulnerabilidade + (m.resistencia || 0) * .12),
     recargaEscudo: n('escudo') ? Math.max(6, 18 / (1 + n('escudo') * .14)) : 0,
     seiva: n('sangue') ? Math.max(2, 8 - n('sangue')) : 0,
     onda: n('onda'), espinhos: n('espinhos'), sombra: n('sombra'),

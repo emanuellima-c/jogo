@@ -1,8 +1,8 @@
 import { CONFIG as C } from '../../core/configuracoes.js';
 
-function sobrepoe(a, b) {
-  return a.x < b.x + b.largura && a.x + a.largura > b.x &&
-    a.y < b.y + b.altura && a.y + a.altura > b.y;
+function sobrepoe(a, b, margemInternaB = 0) {
+  return a.x < b.x + b.largura - margemInternaB && a.x + a.largura > b.x + margemInternaB &&
+    a.y < b.y + b.altura - margemInternaB && a.y + a.altura > b.y + margemInternaB;
 }
 function caixaLivre(t, mundo, x) {
   for (let y = Math.floor(t.y / C.tile); y <= Math.floor((t.y + t.altura - C.epsilon) / C.tile); y++) {

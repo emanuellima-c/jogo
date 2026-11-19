@@ -1,4 +1,4 @@
-import { ESTADOS as E } from '../core/configuracoes.js';
+import { CAMPANHA as B, ESTADOS as E } from '../core/configuracoes.js';
 import { FASES, MUNDOS } from '../fases/campanha.js';
 import { PODERES, PODER_POR_ID, RARIDADES } from '../dados/poderes.js';
 import { estatisticas, xpNecessario } from '../meta/progressao.js';
@@ -10,7 +10,7 @@ class Interface {
   constructor(aoAgir) {
     this.palco = document.getElementById('palco'); this.telas = document.getElementById('telas');
     this.paineis = document.querySelectorAll('[data-tela]'); this.cache = Object.create(null); this.elementos = {};
-    for (const id of ['pontos','vidas','combo','nivel','xp','xpTexto','mundo','fase','estrelas','progresso','nomeFase','tempo','estadoEscudo','dash','chefeHud','nomeChefe','faseChefe','vidaChefe','aviso','avisoSave']) this.elementos[id] = document.getElementById(id);
+    for (const id of ['pontos','vidas','combo','comboGolpes','nivel','xp','xpTexto','mundo','fase','estrelas','progresso','nomeFase','tempo','estadoEscudo','dash','chefeHud','nomeChefe','faseChefe','vidaChefe','aviso','avisoSave']) this.elementos[id] = document.getElementById(id);
     this.pausa = document.getElementById('botaoPausa'); this.abortar = new AbortController();
     this.palco.addEventListener('click', evento => {
       const botao = evento.target.closest('[data-acao]');
@@ -19,16 +19,16 @@ class Interface {
     }, { signal: this.abortar.signal });
   }
   texto(id, valor) { if (this.cache[id] !== valor) { this.elementos[id].textContent = valor; this.cache[id] = valor; } }
+  atualizarBarra(id, fracao) {
+    const valor = Math.round(Math.max(0, Math.min(1, fracao)) * 200) / 200;
+    if (this.elementos[id].value !== valor) this.elementos[id].value = valor;
+  }
   trocarTela(estado, sessao, mundo, engine) {
     this.palco.dataset.estado = estado; this.telas.hidden = estado === E.JOGANDO;
     for (const painel of this.paineis) painel.hidden = painel.dataset.tela !== estado;
     this.pausa.disabled = estado !== E.JOGANDO;
     const p = engine.perfil;
-    if (estado === E.MENU) {
-      const quantidade = Object.keys(p.poderes).length;
-      document.getElementById('resumoPerfil').innerHTML = `<strong>Nível ${p.nivel}</strong><p>${p.xp} / ${xpNecessario(p.nivel)} XP<br>${quantidade} habilidades · Expedição ${p.ciclo}<br>${p.concluidas.filter(Boolean).length}/15 fases · ${p.estrelas.reduce((a,b)=>a+b,0)}/45 estrelas</p>`;
-      document.getElementById('botaoJogar').textContent = p.pendente ? 'Escolher poder pendente →' : 'Continuar · fase ' + p.fase + ' →';
-    } else if (estado === E.MAPA) this.montarMapa(engine);
+    if (estado === E.MAPA) this.montarMapa(engine);
     else if (estado === E.PERSONAGEM) this.montarPersonagem(p);
     else if (estado === E.DESAFIOS) this.montarDesafios(p);
     else if (estado === E.OPCOES) this.montarOpcoes(p);
@@ -38,12 +38,12 @@ class Interface {
     else if (estado === E.VITORIA) {
       document.getElementById('resumoVitoria').innerHTML = `<p>Expedição ${p.ciclo} concluída. Você chegou ao nível <b>${p.nivel}</b>, reuniu <b>${Object.keys(p.poderes).length} habilidades</b> e encontrou <b>${p.estrelas.reduce((a,b)=>a+b,0)}/45 estrelas</b>.</p><p>Na nova expedição, os inimigos ficam mais fortes e cada fase volta a oferecer um poder. Seu nível e suas habilidades continuam com você.</p>`;
     }
-    const alvo = estado === E.JOGANDO ? document.getElementById('jogo') : this.telas.querySelector('section:not([hidden]) button');
+    const alvo = estado === E.JOGANDO ? document.getElementById('jogo') : estado === E.MENU ? document.getElementById('botaoJogar') : this.telas.querySelector('[data-tela="'+estado+'"] button:not(:disabled)');
     alvo?.focus({ preventScroll: true });
   }
   montarMapa(engine) {
     const p = engine.perfil, liberada = engine.faseDesbloqueada();
-    document.getElementById('mapaFases').innerHTML = MUNDOS.map((m, mundo) => `<div class="fases-mundo"><h3>${mundo+1}. ${m.nome}</h3><div class="grade-fases">${FASES.slice(mundo*3,mundo*3+3).map(f => {
+    document.getElementById('mapaFases').innerHTML = MUNDOS.map((m, mundo) => `<div class="fases-mundo" id="regiao-${mundo}"><h3 tabindex="-1">${mundo+1}. ${m.nome}</h3><div class="grade-fases">${FASES.slice(mundo*3,mundo*3+3).map(f => {
       const concluida = p.concluidas[f.numero-1], bloqueada = f.numero > liberada;
       return `<button data-acao="fase" data-valor="${f.numero}" class="botao-fase ${concluida?'concluida':''} ${p.fase===f.numero?'atual':''}" ${bloqueada?'disabled':''}><span>${bloqueada?'🔒':f.chefe?'♛':'↗'} FASE ${f.numero}</span><b>${f.nome}</b><small>${estrelas(p.estrelas[f.numero-1])}${p.tempos[f.numero-1]?' · '+formatarTempo(p.tempos[f.numero-1]):''}</small></button>`;
     }).join('')}</div></div>`).join('');
@@ -82,25 +82,33 @@ class Interface {
       this.elementos.vidas.setAttribute('aria-label',sessao.vidas+' corações'); this.cache.vidasNumero = sessao.vidas;
     }
     if (this.cache.nivelNumero !== p.nivel) { this.texto('nivel','HERÓI · NÍVEL '+p.nivel); this.cache.nivelNumero = p.nivel; }
-    this.elementos.xp.max = xpNecessario(p.nivel); this.elementos.xp.value = p.xp;
-    if (this.cache.xpNumero !== p.xp || this.cache.xpNivel !== p.nivel) { this.texto('xpTexto',p.xp+' / '+xpNecessario(p.nivel)+' XP'); this.cache.xpNumero=p.xp; this.cache.xpNivel=p.nivel; }
+    if (this.cache.xpNumero !== p.xp || this.cache.xpNivel !== p.nivel) {
+      const limite = xpNecessario(p.nivel);
+      this.elementos.xp.max = limite; this.elementos.xp.value = p.xp;
+      this.texto('xpTexto',p.xp+' / '+limite+' XP'); this.cache.xpNumero=p.xp; this.cache.xpNivel=p.nivel;
+    }
     if (this.cache.faseNumero !== m.fase.numero) {
       this.texto('fase','FASE '+String(m.fase.numero).padStart(2,'0')+' / 15'); this.texto('nomeFase',m.fase.nome);
       this.texto('mundo',MUNDOS[m.fase.mundo].nome.toUpperCase()); this.cache.faseNumero=m.fase.numero;
     }
     if (this.cache.estrelasNumero !== engine.corrida.estrelas) { this.texto('estrelas',estrelas(engine.corrida.estrelas)); this.cache.estrelasNumero=engine.corrida.estrelas; }
     if (this.cache.comboNumero !== engine.combo) { this.texto('combo','×'+engine.combo); this.cache.comboNumero=engine.combo; }
+    if (this.cache.golpeCombo !== c.golpeCombo) {
+      this.texto('comboGolpes','Golpes '+c.golpeCombo+'/'+B.golpesCombo); this.cache.golpeCombo=c.golpeCombo;
+    }
     const segundo = Math.floor(m.tempo); if (this.cache.segundo !== segundo) { this.texto('tempo',formatarTempo(segundo)); this.cache.segundo=segundo; }
-    this.elementos.progresso.value = Math.max(0,Math.min(1,(m.jogador.transformacao.x-m.inicioX)/(m.portalX-m.inicioX)));
-    this.elementos.dash.value = 1-c.esperaDash/engine.atributos.recargaDash;
-    const escudo = c.escudo ? '⬡ ESCUDO PRONTO' : engine.atributos.recargaEscudo ? '⬡ '+Math.ceil(c.esperaEscudo)+' s' : '⬡ SEM ESCUDO';
+    this.atualizarBarra('progresso',(m.jogador.transformacao.x-m.inicioX)/(m.portalX-m.inicioX));
+    if (engine.atributos.podeDash) this.atualizarBarra('dash',1-c.esperaDash/engine.atributos.recargaDash);
+    const escudo = c.escudo ? '⬡ Escudo pronto' : engine.atributos.recargaEscudo ? '⬡ '+Math.ceil(c.esperaEscudo)+' s' : '';
     this.texto('estadoEscudo',escudo);
     const chefe = engine.chefe, mostrarChefe = estado===E.JOGANDO && chefe?.ativo && chefe.estado!=='dormindo';
-    this.elementos.chefeHud.hidden = !mostrarChefe;
-    if (mostrarChefe) { this.texto('nomeChefe',chefe.dados.nome); this.texto('faseChefe','FASE '+chefe.fase+'/3'); this.elementos.vidaChefe.value=chefe.vida/chefe.vidaMaxima; }
+    if (this.elementos.chefeHud.hidden !== !mostrarChefe) this.elementos.chefeHud.hidden = !mostrarChefe;
+    if (mostrarChefe) { this.texto('nomeChefe',chefe.dados.nome); this.texto('faseChefe','FASE '+chefe.fase+'/3'); this.atualizarBarra('vidaChefe',chefe.vida/chefe.vidaMaxima); }
     const texto = estado===E.JOGANDO && engine.aviso.tempo>0 ? engine.aviso.texto : '';
-    this.texto('aviso',texto); this.elementos.aviso.style.color=engine.aviso.cor;
-    this.elementos.avisoSave.hidden=engine.saveDisponivel;
+    this.texto('aviso',texto);
+    if (this.cache.corAviso !== engine.aviso.cor) {
+      this.elementos.aviso.style.color=engine.aviso.cor; this.cache.corAviso=engine.aviso.cor;
+    }
   }
   mostrarTestes(relatorio) { const c=document.getElementById('relatorioTestes'); c.hidden=false; c.textContent=relatorio.texto+'\n\nClique em Continuar para fechar.'; }
   ocultarTestes() { document.getElementById('relatorioTestes').hidden=true; }

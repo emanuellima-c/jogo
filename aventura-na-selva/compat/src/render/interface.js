@@ -6,7 +6,7 @@ const { ESTADOS: E } = usar("src/core/configuracoes.js");
 const { PRODUTOS, precoProduto, podeTreinar } = usar("src/meta/mercador.js");
 const { PROVAS, SIMBOLOS } = usar("src/meta/puzzles.js");
 const { PODER_POR_ID, RARIDADES } = usar("src/dados/poderes.js");
-const { estatisticas, xpNecessario } = usar("src/meta/progressao.js");
+const { estatisticas } = usar("src/meta/progressao.js");
 const { desenharBento } = usar("src/render/extras.js");
 class Interface extends InterfaceBase {
   constructor(aoAgir){
@@ -14,6 +14,9 @@ class Interface extends InterfaceBase {
     for(const id of ['moedas','estadoIma'])this.elementos[id]=document.getElementById(id);
     this.ghost=document.getElementById('puzzleGhost');this.ghostCanvas=document.getElementById('ghostCanvas');this.mapaPuzzle=this.criarImagemPuzzle();
     const op={signal:this.abortar.signal};
+    this.toqueAtivo = window.matchMedia('(any-pointer: coarse)');
+    this.dica = document.getElementById('dicaTrilha');
+    for(const id of ['textoDica','somMenu','botaoSom','interagirMercador','toqueDash','estadoDash'])this.elementos[id]=document.getElementById(id);
     this.palco.addEventListener('input',e=>{if(e.target.id==='volumeMestre')aoAgir('volume',Number(e.target.value)/100);},op);
     let ultimoBotao=null;
     const navegar=e=>{const b=e.target.closest('button');if(b&&b!==ultimoBotao&&!b.disabled&&this.engine?.estados.atual!==E.JOGANDO){ultimoBotao=b;aoAgir('navegar');}};
@@ -45,17 +48,34 @@ class Interface extends InterfaceBase {
     this.engine=engine;if(estado===E.JOGANDO)this.cache.faseNumero=-1;super.trocarTela(estado,sessao,mundo,engine);
     this.arraste=null;this.ghost.hidden=true;
     if(estado===E.MENU){
-      const p=engine.perfil;document.getElementById('botaoJogar').textContent='JOGAR ↗';
-      const continuar=document.getElementById('botaoContinuar');continuar.disabled=!p.iniciada;continuar.textContent='CONTINUAR →';
-      document.getElementById('resumoPerfil').innerHTML=`<strong>Nível ${p.nivel} · ◈ ${p.moedas}</strong><p>${p.xp} / ${xpNecessario(p.nivel)} XP<br>${p.concluidas.filter(Boolean).length}/15 fases · ${p.estrelas.reduce((a,b)=>a+b,0)}/45 estrelas<br>${p.descanso?'No descanso com Bento':'Próxima trilha: '+p.fase}</p>`;
+      const p=engine.perfil, botao=document.getElementById('botaoJogar');
+      botao.dataset.acao=p.iniciada?'retomar':'jogar';
+      botao.querySelector('span').textContent=p.iniciada?'Continuar aventura':'Iniciar aventura';
+      const feitas=p.concluidas.filter(Boolean).length;
+      const resumo = p.iniciada ? 'Nível '+p.nivel+' · '+feitas+' de 15 fases concluídas' : 'Salvamento automático neste dispositivo';
+      document.getElementById('resumoPerfil').textContent=engine.saveDisponivel ? resumo : 'Progresso disponível nesta sessão';
+      for(const carta of this.palco.querySelectorAll('.carta-mundo')){
+        const indice=Number(carta.dataset.valor), aberta=indice*3<engine.faseDesbloqueada();
+        carta.dataset.aberto=String(aberta);
+        const bandeira=p.concluidas[indice*3+2]?'certo':aberta?'bandeira':'lock';
+        carta.querySelector('.estado-mundo i').className='icone i-'+bandeira;
+      }
+    }else if(estado===E.PAUSADO){
+      document.getElementById('trilhaPausa').textContent=engine.descanso?'PRAÇA DOS CAMINHOS':'FASE '+String(mundo.fase.numero).padStart(2,'0')+' · '+mundo.fase.nome;
+      document.getElementById('resumoPausa').textContent=sessao.vidas+' ♥   ·   '+engine.perfil.moedas+' moedas   ·   '+engine.corrida.estrelas+'/3 estrelas';
     }else if(estado===E.LOJA)this.montarLoja(engine);
     else if(estado===E.PUZZLE)this.montarPuzzle(engine.puzzle);
     else if(estado===E.SAIU)document.getElementById('textoSaida').textContent=engine.saveDisponivel?'Seu progresso foi salvo. Você pode fechar esta aba.':'O navegador bloqueou o salvamento. Volte ao título e exporte o progresso nas opções antes de fechar.';
     const transicao=document.getElementById('transicao');
     if(!engine.semMovimento()&&transicao){transicao.className='transicao';void transicao.offsetWidth;transicao.className='transicao animando '+(estado===E.FASE_CONCLUIDA?'flash':estado===E.JOGANDO?'deslize':'');}
   }
+  focarMundo(indice) {
+    const titulo=document.getElementById('regiao-'+indice)?.querySelector('h3');
+    if(titulo){titulo.focus({preventScroll:true});titulo.scrollIntoView({block:'center'});}
+  }
   montarPersonagem(p){
     super.montarPersonagem(p);
+    document.getElementById('tituloPersonagem').textContent='Lula · nível '+p.nivel;
     document.getElementById('movimentosAprendidos').innerHTML=Object.entries(PROVAS).map(([id,d])=>`<span>${p.aprendidas[id]?'✓':'○'} ${d.habilidade}</span>`).join('')+`<span>Melhorias · pulo ${p.melhorias.pulo} · velocidade ${p.melhorias.velocidade} · resistência ${p.melhorias.resistencia}</span>`;
   }
   montarOpcoes(p){
@@ -76,7 +96,7 @@ class Interface extends InterfaceBase {
       return `<article class="produto"><h4>${d.icone} ${d.nome}</h4><p>${d.descricao}</p><small>${d.melhoria?'Nível '+p.melhorias[d.id]+' → '+(p.melhorias[d.id]+1):'Provisão para a viagem'}</small><button data-acao="comprar" data-valor="${d.id}" ${limite||p.moedas<preco?'disabled':''}>${limite?'Já está completo':'◈ '+preco+' · Comprar'}</button></article>`;
     }).join('');
     document.getElementById('treinosLoja').innerHTML=Object.entries(PROVAS).map(([id,d])=>`<article class="treino"><h4>${p.aprendidas[id]?'✓ ':''}${d.habilidade}</h4><p>${d.descricao}</p><small>Dificuldade ${d.dificuldade}/3 · ${p.aprendidas[id]?'Aprendida para sempre':'Após a fase '+d.fase}</small><button data-acao="treinar" data-valor="${id}" ${podeTreinar(p,id)?'':'disabled'}>${p.aprendidas[id]?'Rever a prova':podeTreinar(p,id)?'Aprender · gratuito':'Prova ainda bloqueada'}</button></article>`).join('');
-    document.getElementById('presentesLoja').innerHTML=p.pendente?`<h3>Presente da trilha ${p.pendente.fase} · escolha uma relíquia grátis</h3><p>As habilidades já adquiridas ganham +1 nível. Você pode decidir agora ou guardar a escolha para outro descanso.</p><div class="cartas">${p.pendente.opcoes.map(id=>{const h=PODER_POR_ID[id],r=RARIDADES[h.raridade],n=p.poderes[id]||0;return `<button class="carta" data-acao="poder" data-valor="${id}" style="--cor:${r.cor}"><span class="raridade">${r.nome.toUpperCase()}</span><span class="icone">${h.icone}</span><b>${h.nome}</b><span class="descricao-poder">${h.descricao}</span><span class="nivel-poder">${n?'Aprimorar '+n+' → '+(n+1):'Nova relíquia · nível 1'}</span></button>`;}).join('')}</div>`:'';
+    document.getElementById('presentesLoja').innerHTML=p.pendente?`<h3>Presente da trilha ${p.pendente.fase} · escolha uma relíquia grátis</h3><p>As habilidades já adquiridas ganham +1 nível. Você pode decidir agora ou guardar a escolha para outro descanso.</p><div class="cartas">${p.pendente.opcoes.map(id=>{const h=PODER_POR_ID[id],r=RARIDADES[h.raridade],n=p.poderes[id]||0;return `<button class="carta" data-acao="poder" data-valor="${id}" style="--cor:${r.cor}"><span class="raridade">${r.nome.toUpperCase()}</span><span class="glifo-poder">${h.icone}</span><b>${h.nome}</b><span class="descricao-poder">${h.descricao}</span><span class="nivel-poder">${n?'Aprimorar '+n+' → '+(n+1):'Nova relíquia · nível 1'}</span></button>`;}).join('')}</div>`:'';
   }
   criarImagemPuzzle(){
     const c=document.createElement('canvas');c.width=216;c.height=144;const x=c.getContext('2d');
@@ -105,13 +125,37 @@ class Interface extends InterfaceBase {
     document.getElementById('finalizarPuzzle').textContent=p.status==='vitoria'?'Aprendido! Voltar à loja →':'Voltar ao Bento →';
   }
   atualizar(sessao,m,estado,engine){
-    super.atualizar(sessao,m,estado,engine);this.texto('moedas','◈ '+engine.perfil.moedas);
-    const ima=engine.perfil.consumiveis.ima;this.texto('estadoIma',ima>0?'✧ ÍMÃ '+Math.ceil(ima)+'s':'');
-    document.getElementById('interagirMercador').hidden=!(estado===E.JOGANDO&&engine.descanso&&engine.mercadorPerto);
-    document.getElementById('toqueDash').disabled=!engine.atributos.podeDash;
-    const som=document.getElementById('botaoSom');som.textContent=engine.perfil.opcoes.som?'♫':'♪̸';som.setAttribute('aria-label',engine.perfil.opcoes.som?'Desativar som':'Ativar som');
-    if(engine.descanso){this.texto('nomeFase','DESCANSO · Bento do Cipó');this.texto('fase','PRÓXIMA '+(engine.descanso.proxima>15?'VITÓRIA':'FASE '+engine.descanso.proxima));}
+    const somLigado=engine.perfil.opcoes.som;
+    if(this.cache.somLigado!==somLigado){
+      const texto=somLigado?'Desativar som':'Ativar som';
+      for(const botao of [this.elementos.botaoSom,this.elementos.somMenu]){
+        botao.setAttribute('aria-label',texto);botao.setAttribute('aria-pressed',String(somLigado));
+        botao.querySelector('i').className='icone i-'+(somLigado?'som':'mudo');
+      }
+      this.elementos.somMenu.querySelector('span').textContent=somLigado?'Som ligado':'Som mudo';
+      this.cache.somLigado=somLigado;
+    }
+    if(this.elementos.avisoSave.hidden!==engine.saveDisponivel)this.elementos.avisoSave.hidden=engine.saveDisponivel;
+    const longeDeBento=!(estado===E.JOGANDO&&engine.descanso&&engine.mercadorPerto);
+    if(this.elementos.interagirMercador.hidden!==longeDeBento)this.elementos.interagirMercador.hidden=longeDeBento;
     if(estado===E.PUZZLE&&engine.puzzle&&(engine.puzzle!==this.puzzleAtual||engine.puzzle.versao!==this.versaoPuzzle)&&!this.arraste)this.montarPuzzle(engine.puzzle);
+    if(estado!==E.JOGANDO)return;
+    super.atualizar(sessao,m,estado,engine);
+    this.texto('moedas','◈ '+engine.perfil.moedas);
+    const ima=engine.perfil.consumiveis.ima;this.texto('estadoIma',ima>0?'✧ Ímã '+Math.ceil(ima)+' s':'');
+    const ocultarDash = !engine.atributos.podeDash;
+    if (this.elementos.toqueDash.hidden !== ocultarDash) {
+      this.elementos.toqueDash.hidden=ocultarDash; this.elementos.estadoDash.hidden=ocultarDash;
+    }
+    const x=m.jogador.transformacao.x;
+    const dica=m.fase.dicas?.find(d=>x>=d.de&&x<d.ate);
+    if(this.dica.hidden!==!dica)this.dica.hidden=!dica;
+    if(dica){
+      const toque=engine.entrada.ultimoDispositivo ? engine.entrada.ultimoDispositivo==='toque' : this.toqueAtivo.matches;
+      this.texto('textoDica',toque?dica.toque:dica.teclado);
+    }
+    if(engine.descanso){this.texto('nomeFase','DESCANSO · Bento do Cipó');this.texto('fase','PRÓXIMA '+(engine.descanso.proxima>15?'VITÓRIA':'FASE '+engine.descanso.proxima));}
+
   }
   mostrarTestes(r){const caixa=document.getElementById('relatorioTestes');caixa.hidden=false;caixa.innerHTML='<button data-acao="fecharTestes">Fechar relatório →</button><pre></pre>';caixa.querySelector('pre').textContent=r.texto;}
 }

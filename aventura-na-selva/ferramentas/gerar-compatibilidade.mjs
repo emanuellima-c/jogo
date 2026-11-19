@@ -1,19 +1,11 @@
 /** Gera scripts separados para file://. Os módulos em src são a fonte editável. */
-import { readFile, readdir, mkdir, writeFile } from 'node:fs/promises';
+import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { modulosEmUso } from './modulos-em-uso.mjs';
 import { fileURLToPath } from 'node:url';
 
 const raiz = fileURLToPath(new URL('../', import.meta.url));
 const verificar = process.argv.includes('--verificar');
-async function listar(diretorio) {
-  const resultado = [];
-  for (const item of await readdir(diretorio, { withFileTypes: true })) {
-    const arquivo = path.join(diretorio, item.name);
-    if (item.isDirectory()) resultado.push(...await listar(arquivo));
-    else if (item.name.endsWith('.js')) resultado.push(arquivo);
-  }
-  return resultado.sort();
-}
 async function gravar(nome, conteudo) {
   const arquivo = path.join(raiz, nome);
   if (verificar) {
@@ -24,8 +16,8 @@ async function gravar(nome, conteudo) {
   }
 }
 const manifesto = [];
-for (const arquivo of await listar(path.join(raiz, 'src'))) {
-  const id = path.relative(raiz, arquivo).split(path.sep).join('/');
+for (const id of await modulosEmUso()) {
+  const arquivo = path.join(raiz, id);
   let texto = await readFile(arquivo, 'utf8');
   texto = texto.replace(/^import\s*\{([^}]+)\}\s*from\s*['"]([^'"]+)['"];?\s*$/gm, (_, nomes, referencia) => {
     const dependencia = path.posix.normalize(path.posix.join(path.posix.dirname(id), referencia));

@@ -61,12 +61,16 @@ function desenharMercador(ctx,mercador,cameraX,tempo,perto,barraca,brilho){
  }
 }
 function desenharAmbiente(ctx,m,cameraX,tempo,reduzir,brilho){
- const tipo=m.fase.mundo,quantidade=reduzir?7:27;
- for(let i=0;i<quantidade;i++){
-  const x=((i*113+tempo*(tipo===3?12:24)-cameraX*.35)%1000+1000)%1000-20,y=(i*79+tempo*(tipo===4?-22:18)+6000)%570;
-  ctx.globalAlpha=tipo===3?.65:.35;ctx.fillStyle=tipo===4?'#ffcb86':tipo===3?'#f4ffff':tipo===2?'#ffdaa3':tipo===1?'#f8dbad':'#d3ed9b';
-  if(tipo===3||tipo===4)elipse(ctx,x,y,1+i%2,1+i%2,ctx.fillStyle);
-  else{ctx.save();ctx.translate(x,y);ctx.rotate(Math.sin(tempo+i)*.7);ctx.beginPath();ctx.ellipse(0,0,4,1.5,0,0,Math.PI*2);ctx.fill();ctx.restore();}
+ if(reduzir)return;
+ const tipo=m.fase.mundo,largura=ctx.canvas.width*2;
+ ctx.globalAlpha=tipo===3?.65:.35;
+ ctx.fillStyle=['#d3ed9b','#f8dbad','#ffdaa3','#f4ffff','#ffcb86'][tipo];
+ for(let i=0;i<22;i++){
+  const x=Math.round(((i*113+tempo*(tipo===3?12:24)-cameraX*.35)%1000+1000)%1000-20);
+  if(x< -6 || x>largura+6)continue;
+  const y=Math.round((i*79+tempo*(tipo===4?-22:18)+6000)%570);
+  if(tipo===3||tipo===4){const lado=2+2*(i%2);ctx.fillRect(x,y,lado,lado);}
+  else{const inclinacao=Math.round(Math.sin(tempo+i))*2;ctx.fillRect(x-3,y,5,2);ctx.fillRect(x+1,y+inclinacao,3,2);}
  }
  if(tipo===0&&brilho)for(let i=0;i<8;i++){const x=((i*149-cameraX*.62)%1000+1000)%1000,y=300+Math.sin(tempo*.7+i*2)*60;ctx.globalAlpha=.16+Math.sin(tempo*1.8+i)*.12;ctx.drawImage(brilho,x-20,y-20,40,40);}
  ctx.globalAlpha=1;

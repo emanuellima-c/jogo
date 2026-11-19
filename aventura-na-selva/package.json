@@ -1,12 +1,12 @@
 {
   "name": "aventura-na-selva",
-  "version": "3.2.0",
+  "version": "5.0.0",
   "private": true,
   "type": "module",
-  "description": "Jogo original de plataforma em canvas, sem dependências externas.",
+  "description": "Santuários de Aurora, jogo de ação e plataforma em pixel art com 15 fases, teclado e toque.",
   "scripts": {
-    "preparar": "node ferramentas/gerar-compatibilidade.mjs",
-    "test": "node ferramentas/gerar-compatibilidade.mjs --verificar && node ferramentas/testar.mjs && node ferramentas/testar-inicializacao.mjs"
+    "preparar": "node ferramentas/gerar-compatibilidade.mjs && node ferramentas/gerar-pwa.mjs",
+    "test": "node ferramentas/gerar-compatibilidade.mjs --verificar && node ferramentas/gerar-pwa.mjs --verificar && node ferramentas/testar-inicializacao.mjs && node ferramentas/testar-pwa.mjs && node ferramentas/testar-perfil-cinzas.mjs && node ferramentas/testar-combate-cinzas.mjs && node ferramentas/testar-trilhas-cinzas.mjs"
   },
   "engines": {
     "node": ">=18"

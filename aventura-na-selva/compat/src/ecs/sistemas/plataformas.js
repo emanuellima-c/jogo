@@ -1,6 +1,7 @@
 // Gerado a partir de src/ecs/sistemas/plataformas.js. Edite o original e execute npm run preparar.
 globalThis.AventuraModulos.registrar("src/ecs/sistemas/plataformas.js", function (exports, usar) {
 "use strict";
+const { CAMPANHA: B } = usar("src/core/configuracoes.js");
 /** Plataformas de mão única. O delta de movimento carrega o jogador que está apoiado. */
 function atualizarPlataformas(mundo, dt) {
   const j = mundo.jogador, t = j.transformacao;
@@ -8,7 +9,7 @@ function atualizarPlataformas(mundo, dt) {
     const p = mundo.plataformas[i]; p.anteriorX = p.x; p.anteriorY = p.y;
     if (p.tipo === 'fragil' && p.acionada) {
       p.espera += dt;
-      if (p.espera > .6) { p.vy += 1200 * dt; p.y += p.vy * dt; }
+      if (p.espera > B.esperaPonte) { p.vy += 1200 * dt; p.y += p.vy * dt; }
       if (p.y > mundo.altura + 100 && p.espera > 4) { p.x = p.origemX; p.y = p.origemY; p.acionada = false; p.espera = 0; p.vy = 0; }
     } else if (p.tipo === 'horizontal' || p.tipo === 'vertical') {
       const eixo = p.tipo === 'horizontal' ? 'x' : 'y';

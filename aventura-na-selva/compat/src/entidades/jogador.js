@@ -5,8 +5,14 @@ const { transformacao, corpo, controle, animacao } = usar("src/ecs/componentes.j
 // Composição: sistemas operam nos componentes, sem herança de uma classe monolítica.
 function criarJogador(x, y) {
   return { tipo: 'jogador', transformacao: transformacao(x, y), corpo: corpo(), controle: controle(), animacao: animacao(),
-    estatisticas: null, combate: { esperaAtaque: 0, ataque: 0, esperaDash: 0, dash: 0, numeroGolpe: 0,
+    estatisticas: null, combate: { esperaAtaque: 0, esperaRepeticao: 0, ataque: 0, tipoAtaque: '', numeroGolpe: 0,
+      golpeCombo: 0, janelaCombo: 0, bufferAtaque: 0, pedidoPogo: false,
+      esperaDash: 0, dash: 0,
       escudo: false, esperaEscudo: 0, fenix: 0, acertos: 0, seiva: 0 } };
+}
+function cancelarAtaque(combate) {
+  combate.ataque = 0; combate.tipoAtaque = '';
+  combate.golpeCombo = 0; combate.janelaCombo = 0; combate.bufferAtaque = 0;
 }
 function posicionarJogador(jogador, x, y) {
   const t = jogador.transformacao, c = jogador.corpo, entrada = jogador.controle;
@@ -15,8 +21,12 @@ function posicionarJogador(jogador, x, y) {
   entrada.coyote = 0; entrada.buffer = 0; entrada.cortouPulo = true; entrada.direcao = 1;
   entrada.saltosRestantes = 0;
   jogador.animacao.escalaY = 1;
+  jogador.planando = false;
+  cancelarAtaque(jogador.combate);
+  jogador.combate.dash = 0;
 }
 
 Object.defineProperty(exports, "criarJogador", { enumerable: true, get: () => criarJogador });
 Object.defineProperty(exports, "posicionarJogador", { enumerable: true, get: () => posicionarJogador });
+Object.defineProperty(exports, "cancelarAtaque", { enumerable: true, get: () => cancelarAtaque });
 });

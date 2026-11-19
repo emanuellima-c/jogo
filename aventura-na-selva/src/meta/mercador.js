@@ -1,9 +1,10 @@
+import { CAMPANHA as B } from '../core/configuracoes.js';
 import { estatisticas } from './progressao.js';
 import { PROVAS } from './puzzles.js';
 const MERCADOR = { nome: 'Bento do Cipó', titulo: 'Mercador e guardião dos caminhos',
   falas: ['Uma pausa também faz parte da aventura.', 'Moedas guardadas, viagem preparada!', 'Os melhores movimentos começam com uma descoberta.', 'Minhas provas não cobram moedas. Pode tentar de novo!'] };
 const PRODUTOS = [
-  { id:'vida', nome:'Vida extra', icone:'♥', preco:25, descricao:'Recupera um coração agora.' },
+  { id:'vida', nome:'Vida extra', icone:'♥', preco:B.precoCura, descricao:'Recupera um coração agora.' },
   { id:'escudo', nome:'Escudo de casca', icone:'⬡', preco:45, descricao:'Absorve o próximo golpe. Continua ativo na próxima fase.' },
   { id:'ima', nome:'Ímã de moedas', icone:'✧', preco:55, descricao:'Atrai moedas por 60 segundos de jogo. Congela no descanso e nos menus.' },
   { id:'pulo', nome:'Pulo mais alto', icone:'↑', preco:65, melhoria:true, descricao:'+2,5% de impulso permanente por nível. Limite: 760 px/s.' },
