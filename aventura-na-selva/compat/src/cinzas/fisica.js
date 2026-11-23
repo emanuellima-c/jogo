@@ -18,7 +18,8 @@ function criarPisos(fase,selados,tempo=0){
   });
 }
 function posicionar(j,h,p){
-  h.x=p.x-h.w/2;h.y=p.y-h.h;h.vx=h.vy=0;h.coyote=B.movimento.coyote;h.bufferPulo=0;
+  const assistencia=j.perfil?.opcoes?.assistenciaPulo??1;
+  h.x=p.x-h.w/2;h.y=p.y-h.h;h.vx=h.vy=0;h.coyote=B.movimento.coyote*assistencia;h.bufferPulo=0;
   h.pisoId=j.pisos.find(s=>s.estado!=='ausente'&&p.x>=s.x&&p.x<=s.x+s.w&&Math.abs(s.y-p.y)<4)?.id??null;
   h.noChao=h.pisoId!==null;h.usouEco=false;h.cortouPulo=false;
 }
@@ -80,9 +81,10 @@ function moverY(j,h,dt){
 }
 function movimentar(j,dt,entrada){
   const h=j.heroi,m=B.movimento,eixo=limitar(Number(entrada.eixo)||0,-1,1);
+  const assistencia=j.perfil?.opcoes?.assistenciaPulo??1;
   const estavaNoChao=h.noChao,antesVy=h.vy;
-  h.coyote=h.noChao?m.coyote:Math.max(0,h.coyote-dt);
-  h.bufferPulo=entrada.pulo?m.buffer:Math.max(0,h.bufferPulo-dt);
+  h.coyote=h.noChao?m.coyote*assistencia:Math.max(0,h.coyote-dt);
+  h.bufferPulo=entrada.pulo?m.buffer*assistencia:Math.max(0,h.bufferPulo-dt);
   const livre=h.acao==='livre',aerea=!h.noChao;
   if(h.bufferPulo>0&&h.coyote>0&&(livre||h.etapa==='recuperacao'&&h.duracaoAcao-h.tempoAcao<.07)){
     h.vy=-m.impulso;h.noChao=false;h.pisoId=null;h.coyote=0;h.bufferPulo=0;h.cortouPulo=false;
@@ -95,13 +97,17 @@ function movimentar(j,dt,entrada){
   let escala=livre?1:0;
   if(aerea&&['leve','pesado','retorno'].includes(h.acao))escala=.70;
   if(h.acao==='dano')escala=.18;
-  let velocidade=escala*eixo*m.velocidade;
+  let velocidade=escala*eixo*m.velocidade*(h.classe?.velocidade??1);
   const etapa=h.etapa,acao=h.acao;
-  if(acao==='esquiva')velocidade=h.dir*B.esquiva.velocidade*(etapa==='recuperacao'?.55:1);
+  if(acao==='esquiva')velocidade=h.dir*(h.classe?.esquiva??B.esquiva).velocidade*(etapa==='recuperacao'?.55:1);
   else if(acao==='eco'&&etapa!=='recuperacao')velocidade=h.dir*B.golpe.eco.avanco;
   else if(acao==='estocada'&&etapa==='impacto')velocidade=h.dir*B.golpe.estocada.avanco;
   if(acao!=='dano'||h.tempoAcao>.08){
-    const aceleracao=(eixo||!livre?m.aceleracao:m.freio)*dt;
+    const ambiente=j.emTreino?null:j.ambiente;
+    const freio=ambiente?.freio??1;
+    const ganhandoVelocidade=eixo&&Math.sign(h.vx)===Math.sign(eixo)&&Math.abs(velocidade)>=Math.abs(h.vx);
+    const aceleracao=(eixo||!livre?m.aceleracao:m.freio)*(ganhandoVelocidade||!livre?1:freio)*dt;
+    if(livre&&ambiente)velocidade=velocidade*ambiente.velocidade+ambiente.arrasto;
     h.vx+=limitar(velocidade-h.vx,-aceleracao,aceleracao);
   }
   if(acao==='pisada'&&etapa==='impacto')h.vy=B.golpe.pisada.queda;
@@ -110,13 +116,14 @@ function movimentar(j,dt,entrada){
   moverX(j,h,dt);
   const pouso=moverY(j,h,dt);
   if(pouso&&!estavaNoChao&&antesVy>110){
-    j.efeito('pouso',centro(h),pouso.y,h.dir);
+    j.efeito('pouso',centro(h),pouso.y,h.dir,Math.min(1.4,antesVy/190));
     if(antesVy>220)j.emitirSom('pouso');
   }
   if(pouso && !['movel','fragil','selado'].includes(pouso.tipo)){
     const margem=Math.min(8,pouso.w*.18),cx=centro(h);
     if(cx>=pouso.x+margem&&cx<=pouso.x+pouso.w-margem &&
-      !j.fase.espinhos.some(p=>cx>p.x-8&&cx<p.x+p.w+8&&Math.abs(p.y-pouso.y)<25)){
+      !j.fase.espinhos.some(p=>cx>p.x-8&&cx<p.x+p.w+8&&Math.abs(p.y-pouso.y)<25)&&
+      !j.ambiente?.zonas.some(zona=>zona.tipo==='vapor'&&cx>zona.x-8&&cx<zona.x+zona.w+8&&Math.abs(zona.y-pouso.y)<25)){
       h.seguro.x=cx;h.seguro.y=pouso.y;
     }
   }

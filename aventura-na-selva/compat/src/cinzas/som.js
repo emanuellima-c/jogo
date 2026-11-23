@@ -9,7 +9,13 @@ const TIMBRES={
   leve:[165,265,.075,'triangle'],pesado:[109,67,.18,'triangle'],impacto:[214,62,.095,'sawtooth'],
   dano:[158,47,.19,'sawtooth'],esquiva:[260,117,.13,'triangle'],perfeito:[623,1180,.17,'sine'],
   vigor:[123,91,.085,'square'],cura:[416,829,.33,'sine'],retorno:[587,1174,.15,'triangle'],
-  quebra:[190,48,.26,'sawtooth'],aparo:[989,1480,.18,'square'],estocada:[210,740,.14,'triangle'],
+  quebra:[190,48,.26,'sawtooth'],aparo:[620,930,.11,'triangle'],
+  'aparo-perfeito':[1050,1880,.24,'sine'],'impacto-metal':[740,260,.14,'triangle'],
+  'janela-ouro':[784,1318,.28,'sine'],
+  'aviso-rajada':[367,251,.18,'triangle'],'aviso-correnteza':[480,384,.26,'sine'],
+  'aviso-areia':[278,133,.09,'square'],'aviso-gelo':[1567,1175,.22,'triangle'],
+  'aviso-vapor':[312,775,.36,'sawtooth'],
+  estocada:[210,740,.14,'triangle'],
   pisada:[96,38,.33,'triangle'],eco:[880,523,.19,'sine'],aviso:[252,315,.13,'triangle'],
   ruptura:[141,51,.24,'square'],guarda:[330,220,.13,'square'],estrela:[698,1397,.34,'sine'],
   moeda:[880,1174,.12,'sine'],descanso:[261,523,.44,'triangle'],atalho:[196,392,.27,'triangle'],
@@ -52,10 +58,11 @@ class Som extends MotorAudio {
     const [a,b,t,onda]=TIMBRES[id]||TIMBRES.menu,agora=this.contexto.currentTime;
     this.nota(a,t,onda,id==='menu'?.027:.065,agora);
     this.nota(b,t*.75,'sine',.049,agora+t*.29);
-    if(['estrela','vitoria','descanso','recuperar','cura','eco'].includes(id)){
+    if(['estrela','vitoria','descanso','recuperar','cura','eco','aparo-perfeito'].includes(id)){
       this.nota(b*1.5,t*.68,'sine',.027,agora+t*.61);
     }
   }
 }
 Object.defineProperty(exports, "Som", { enumerable: true, get: () => Som });
+Object.defineProperty(exports, "TIMBRES", { enumerable: true, get: () => TIMBRES });
 });

@@ -13,7 +13,7 @@ for (const [nome, caminho] of arte) {
 }
 codigo += '\nexport { ATLAS_HEROI, RETRATO_HEROI };\n';
 
-const saida = new URL('src/dados/arteHeroi.js', raiz);
+const saida = new URL('legado/edicao-4/src/dados/arteHeroi.js', raiz);
 if (verificar) {
   if (await readFile(saida, 'utf8') !== codigo) throw new Error('Sprites embutidos desatualizados. Execute npm run preparar.');
 } else await writeFile(saida, codigo);

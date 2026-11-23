@@ -4,6 +4,12 @@ Os sprites de Lula, Bento, criaturas e guardiões, o retrato de Bento, o sigilo 
 
 A capa, os 15 painéis de fase e as imagens decorativas do atlas, do descanso e da oficina foram criados com a ferramenta integrada OpenAI ImageGen em modo de geração de imagem. A capa foi exportada como `capa.webp`. Os três painéis compostos foram recortados em `f01.webp` a `f15.webp`, `oficina.webp`, `santuario.webp` e `mesa.webp`. Cada paisagem de fase tem 576 × 324 pixels e é recortada pela câmera na escala nativa.
 
+## Efeitos desta revisão
+
+Os desenhos originais das dez criaturas dos biomas estão em `src/cinzas/criaturas-pixel.js`. Os cinco mini-chefes usam o atlas original com marcas em Canvas. Os sinais de direção e alcance, os cinco motivos dos perigos, as partículas, os sinais de arena e o fantasma do contrarrelógio são feitos em código. Os timbres de perigo, aparo e impacto metálico usam síntese WebAudio.
+
+Uma revisão visual futura pode acrescentar quadros próprios para os cinco mini-chefes em `criaturas.png`, ícones para os amuletos e poses de transição para os guardiões. As representações atuais estão na galeria de leitura.
+
 ## Descrição da capa
 
 ```text

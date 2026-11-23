@@ -2,17 +2,24 @@ import { tela,tinta,linha,fios,pol,disco,diamante,luz,halo } from './formas.js';
 import { PALETAS,novaSuperficie,trilho,rachadura,perigo } from './terreno-pixel.js';
 import { franja,oficinaEstatica,oficina,santuario,atalho,portao } from './cenografia.js';
 import { desenharHeroi,desenharInimigo,projetil } from './atores-pixel.js';
+import { desenharAmbiente } from './ambiente.js';
+import { posicaoFantasma } from './modos.js';
 
 const CORES_FX={
   impacto:'#fbe6b6',dano:'#f09e8e',esquiva:'#a4babe',perfeito:'#b1f3d6',cura:'#9ee8bb',
   retorno:'#a5e7cd',quebra:'#efbc7c',aparo:'#c9f3dc',estocada:'#a3e5c9',pisada:'#e2b486',
   eco:'#85d1c7',aviso:'#eac481',ruptura:'#c99f84',guarda:'#e0ae77',estrela:'#ffe3a2',
   moeda:'#a9e8d4',descanso:'#f6c982',atalho:'#bad5ae',morte:'#9a9caa',recuperar:'#a4edde',
-  chefe:'#f6b685',pulo:'#c1b497',pouso:'#d9c4a1',leve:'#e0d8be',pesado:'#edc58d'
+  chefe:'#f6b685',pulo:'#c1b497',pouso:'#d9c4a1',leve:'#e0d8be',pesado:'#edc58d',
+  corrida:'#a99c80','impacto-metal':'#d1dfeb','aparo-perfeito':'#d9ffe8','janela-ouro':'#ffe5a0',
+  'bloqueio-classe':'#cfdcec','contra-guarda':'#fce1ac','barreira-impacto':'#d7e9ff',barreira:'#98c9ff',
+  chama:'#ffab75',queimadura:'#ff975f',arcano:'#a2caff',prece:'#ffe3a6',furia:'#ffaf77',critico:'#dcc0ff','eco-extra':'#a9e8d4'
 };
-const POEIRA=new Set(['pulo','pouso','esquiva','pisada','ruptura','morte']);
-const FAISCA=new Set(['impacto','aparo','perfeito','guarda','quebra','estrela','recuperar']);
-const DURACOES={pulo:.22,pouso:.21,moeda:.25,impacto:.19,dano:.22,eco:.24,chefe:.55,morte:.62,estrela:.6,pisada:.34,ruptura:.45};
+const POEIRA=new Set(['pulo','pouso','esquiva','pisada','ruptura','morte','corrida']);
+const FAISCA=new Set(['impacto','impacto-metal','aparo','aparo-perfeito','perfeito','guarda','quebra','estrela','recuperar','janela-ouro',
+  'bloqueio-classe','contra-guarda','barreira-impacto','barreira','chama','queimadura','arcano','prece','furia','critico','eco-extra']);
+const DURACOES={pulo:.22,pouso:.21,corrida:.19,moeda:.25,impacto:.19,dano:.22,eco:.24,chefe:.55,morte:.62,estrela:.6,pisada:.34,ruptura:.45};
+const TONS_POEIRA=['#a99c80','#c7adb4','#d1af79','#cfdfdf','#9c7770'];
 function limite(n,a,b){return Math.max(a,Math.min(n,b));}
 function acesa(v,id) {return v?.includes(id)===true;}
 function brilhoCriaturas(img){
@@ -64,7 +71,9 @@ class Pintura {
     this.arte=arte;this.feras=arte.criaturas||arte.ferase;this.ferasClaras=brilhoCriaturas(this.feras);
     this.brilhos={ouro:halo('225,167,88'),verde:halo('96,193,159'),rubro:halo('221,111,103')};
     this.oficina=oficinaEstatica();this.superficies=new Map();this.faseAtual=null;this.cameraX=0;this.cameraY=0;
-    this.look=0;this.tempoAnterior=0;this.efeitos=[];this.ultimoHeroi=0;
+    this.look=0;this.ultimoHeroi=0;
+    this.efeitos=Array.from({length:32},()=>({idade:1,dur:0}));
+    this.proximoEfeito=0;this.tremor=0;this.flash=0;this.deformacao=0;this.fantasma={};
   }
   preparar(jogo){
     const f=jogo.fase;this.faseAtual=f;this.superficies.clear();this.porId=new Map();
@@ -72,7 +81,7 @@ class Pintura {
       this.superficies.set(bloco.id,novaSuperficie(bloco,f.regiao));
       this.porId.set(bloco.id,bloco);
     }
-    this.margem=franja(f.id);this.efeitos.length=0;this.tempoAnterior=jogo.tempo;this.centrar(jogo);
+    this.margem=franja(f.id);this.centrar(jogo);
   }
   centrar(jogo){
     const h=jogo.heroi,w=this.canvas.width,alt=this.canvas.height;
@@ -81,11 +90,13 @@ class Pintura {
     this.ancoraY=h.y+h.h;
     this.cameraY=limite(this.ancoraY-alt*.76,-94,76);
     this.ultimoHeroi=h.x;
+    for(const efeito of this.efeitos)efeito.dur=0;
+    this.tremor=0;this.flash=0;this.deformacao=0;
   }
   enquadrar(j,dt,parado){
     const h=j.heroi,w=this.canvas.width,alt=this.canvas.height;
     if(Math.abs(this.ultimoHeroi-h.x)>w*.6){this.centrar(j);return;}
-    const alvoLook=(h.dir||1)*w*.125;
+    const alvoLook=parado?0:(h.dir||1)*w*(.075+.09*Math.min(1,Math.abs(h.vx)/128));
     this.look+=(alvoLook-this.look)*Math.min(1,dt*3.2);
     const metaX=limite(h.x+h.w/2-w*.5+this.look,0,Math.max(0,j.fase.largura-w));
     this.cameraX+=(metaX-this.cameraX)*Math.min(1,dt*(parado?9:8));
@@ -97,8 +108,16 @@ class Pintura {
   }
   efeito(d){
     if(!d||!Number.isFinite(d.x)||!Number.isFinite(d.y)||!CORES_FX[d.tipo])return;
-    if(this.efeitos.length>=32)this.efeitos.shift();
-    this.efeitos.push({x:d.x,y:d.y,tipo:d.tipo,dir:d.dir||1,idade:0,dur:DURACOES[d.tipo]||.29});
+    const efeito=this.efeitos[this.proximoEfeito];
+    this.proximoEfeito=(this.proximoEfeito+1)%this.efeitos.length;
+    efeito.x=d.x;efeito.y=d.y;efeito.tipo=d.tipo;efeito.dir=d.dir||1;
+    efeito.idade=0;efeito.dur=DURACOES[d.tipo]||.29;
+    const intensidade=limite(d.intensidade||1,.15,2);
+    if(d.tipo==='dano')this.tremor=Math.max(this.tremor,intensidade);
+    if(d.tipo==='impacto-metal'||d.tipo==='impacto')this.tremor=Math.max(this.tremor,intensidade*.55);
+    if(d.tipo==='aparo-perfeito'||d.tipo==='perfeito')this.flash=.15;
+    if(d.tipo==='pouso')this.deformacao=-.17;
+    if(d.tipo==='pulo')this.deformacao=.14;
   }
   fundo(j,xCam,yCam,w,h){
     const c=this.c,reg=j.fase.regiao,p=PALETAS[reg],img=this.arte.fundos?.[j.fase.id-1];
@@ -117,11 +136,13 @@ class Pintura {
     c.drawImage(this.margem,desloc,dy);if(desloc+640<w)c.drawImage(this.margem,desloc+640,dy);
     if(dy+this.margem.height<h)tinta(c,p.nevoa,0,dy+this.margem.height,w,h-dy-this.margem.height);
   }
-  particulas(c,saltou,parado){
-    for(let n=this.efeitos.length-1;n>=0;n--){
-      const p=this.efeitos[n];p.idade+=saltou;
-      if(p.idade>=p.dur){this.efeitos.splice(n,1);continue;}
-      const a=p.idade/p.dur,cor=CORES_FX[p.tipo],x=Math.round(p.x),y=Math.round(p.y);
+  particulas(c,saltou,parado,regiao){
+    for(const p of this.efeitos){
+      if(p.idade>=p.dur)continue;
+      p.idade+=saltou;
+      if(p.idade>=p.dur)continue;
+      const a=p.idade/p.dur,x=Math.round(p.x),y=Math.round(p.y);
+      const cor=POEIRA.has(p.tipo)?TONS_POEIRA[regiao]:CORES_FX[p.tipo];
       if(parado){if(FAISCA.has(p.tipo)&&a<.45)diamante(c,cor,x,y,2);continue;}
       c.globalAlpha=Math.min(1,(1-a)*2);
       if(FAISCA.has(p.tipo)){
@@ -149,8 +170,13 @@ class Pintura {
     const c=this.c,w=this.canvas.width,h=this.canvas.height,parado=opcoes?.movimento===false||opcoes?.reduzido===true;
     const passo=limite(Number.isFinite(dt)&&dt>0&&dt<1?dt:1/60,0,.1);
     this.enquadrar(j,passo,parado);
-    const cx=Math.round(this.cameraX),cy=Math.round(this.cameraY),t=j.tempo||0;
-    const delta=limite(t-this.tempoAnterior,0,.09);this.tempoAnterior=t;
+    const tremor=parado?0:this.tremor*(opcoes.tremor??.65);
+    const balanço=Math.sin(this.tremor*46)*tremor;
+    const cx=Math.round(limite(this.cameraX+balanço*5,0,Math.max(0,j.fase.largura-w)));
+    const cy=Math.round(limite(this.cameraY+balanço*2,-94,76)),t=j.tempo||0;
+    this.tremor=Math.max(0,this.tremor-passo*8);
+    this.flash=Math.max(0,this.flash-passo);
+    this.deformacao*=Math.max(0,1-passo*15);
     c.setTransform(1,0,0,1,0,0);c.imageSmoothingEnabled=false;c.globalAlpha=1;
     this.fundo(j,cx,cy,w,h);
     const f=j.fase,perfil=j.perfil,br=this.brilhos;
@@ -186,14 +212,31 @@ class Pintura {
       rachadura(c,p,t,parado);
     }
     for(const p of f.espinhos)if(p.x+p.w>=cx-4&&p.x<cx+w+4)perigo(c,p,t,parado);
+    desenharAmbiente(c,j,opcoes.altoContraste,cx-16,cx+w+16,parado);
     for(const item of f.moedas)if(vis(item.x)&&!acesa(perfil.coletas?.[f.id],item.id))eco(c,item.x,item.y,item.valor,t,br,parado);
     for(const s of f.estrelas)if(vis(s.x)&&!acesa(perfil.estrelas?.[f.id],s.id))estrela(c,s.x,s.y,t,br,parado);
     if(perfil.mancha?.fase===f.id&&vis(perfil.mancha.x))mancha(c,perfil.mancha,t,br,parado);
-    for(const i of j.inimigos)if(vis(i.x,65))desenharInimigo(c,i,j,this.feras,this.ferasClaras,t,parado,br);
+    for(const i of j.inimigos)if(vis(i.x,65))desenharInimigo(c,i,j,this.feras,this.ferasClaras,t,parado,br,opcoes.altoContraste);
     for(const p of j.projeteis||[])if(vis(p.x))projetil(c,p,t);
-    desenharHeroi(c,j.heroi,this.arte.hero,t,parado,br);
-    this.particulas(c,delta,parado);
-    c.restore();luzAmbiente(c,w,h,t,cx,cy,f.regiao,parado);c.globalAlpha=1;
+    const fantasma=posicaoFantasma(opcoes.fantasma,t*1000,this.fantasma);
+    if(fantasma&&vis(fantasma.x)){
+      const x=Math.round(fantasma.x),y=Math.round(fantasma.y);
+      c.globalAlpha=.58;diamante(c,'#c8e9f9',x,y-23,4);
+      tinta(c,'#86d4ea',x-3,y-16,6,12);tinta(c,'#d6f2f4',x-5,y-6,10,2);
+      c.globalAlpha=1;
+    }
+    if(!parado&&Math.abs(this.deformacao)>.01){
+      const h=j.heroi,x=h.x+h.w/2,y=h.y+h.h;
+      c.save();c.translate(x,y);c.scale(1-this.deformacao*.7,1+this.deformacao);c.translate(-x,-y);
+      desenharHeroi(c,h,this.arte.hero,t,parado,br);c.restore();
+    }else desenharHeroi(c,j.heroi,this.arte.hero,t,parado,br);
+    this.particulas(c,passo,parado,f.regiao);
+    c.restore();luzAmbiente(c,w,h,t,cx,cy,f.regiao,parado);
+    if(!parado&&this.flash>0&&(opcoes.flash??.65)>0){
+      c.globalAlpha=this.flash*(opcoes.flash??.65);
+      tinta(c,'#c8ffe7',0,0,w,h);
+    }
+    c.globalAlpha=1;
   }
 }
 export { Pintura };

@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { Jogo } from '../src/cinzas/jogo.js';
-import { BALANCO, TECNICAS } from '../src/cinzas/ajustes.js';
+import { BALANCO, GOLPES_INIMIGOS, GUARDIOES, TECNICAS } from '../src/cinzas/ajustes.js';
 import { novoPerfil } from '../src/cinzas/perfil.js';
+import { danoEscalado } from '../src/cinzas/poder.js';
 
 const passo=1/60;
 const piso={id:'base',x:0,y:202,w:390,h:75,tipo:'terra'};
@@ -90,7 +91,9 @@ caso('Guarda frontal resiste ao leve; flanco, recuperação e carga oferecem abe
  }
  const bloqueado=dano('leve',false,false);assert(bloqueado.dano>0&&bloqueado.dano<8);
  assert(dano('leve',true,false).dano>15);assert(dano('leve',false,true).dano>20);
- const aberto=dano('t1',false,false);assert.equal(aberto.i.estado,'aberto');assert(aberto.dano>=40);
+ const aberto=dano('t1',false,false);
+ assert.equal(aberto.i.estado,'aberto');
+ assert.equal(aberto.dano,Math.round(danoEscalado(BALANCO.golpe.quebra,aberto.h.atributosBase)));
 });
 caso('Carga e golpe pesado errados expõem o herói durante a recuperação',()=>{
  const {jogo}=armado('quebra','escudo');const h=jogo.heroi;noPiso(jogo,40);
@@ -101,8 +104,10 @@ caso('Carga e golpe pesado errados expõem o herói durante a recuperação',()=
 });
 caso('Estocada cobre distância e acerta uma única vez; errar deixa uma abertura',()=>{
  const {jogo}=armado('estocada','elite');noPiso(jogo,95);const h=jogo.heroi,i=jogo.inimigos[0],x=h.x;
- jogo.atualizar(passo,{t1:true,eixo:1});rodar(jogo,20);assert(h.x>x+9);assert.equal(i.vida,i.vidaMax-BALANCO.golpe.estocada.dano);
- rodar(jogo,4);assert.equal(h.etapa,'recuperacao');assert.equal(i.vida,i.vidaMax-BALANCO.golpe.estocada.dano);
+ jogo.atualizar(passo,{t1:true,eixo:1});rodar(jogo,20);assert(h.x>x+9);
+ const restante=i.vidaMax-Math.round(danoEscalado(BALANCO.golpe.estocada,h.atributosBase));
+ assert.equal(i.vida,restante);
+ rodar(jogo,4);assert.equal(h.etapa,'recuperacao');assert.equal(i.vida,restante);
 });
 caso('Pisada quebra somente laje selada e conserva o piso aberto após recarregar',()=>{
  const p=novoPerfil();p.compradas=['pisada'];p.equipadas=['pisada',null];
@@ -140,13 +145,14 @@ caso('Uma ponte escurece e cede sob pressão, reaparecendo após o intervalo',()
  rodar(jogo,55);assert.equal(jogo.pisos[1].estado,'ausente');assert(h.y+h.h>160);
  rodar(jogo,210);assert.equal(jogo.pisos[1].estado,'inteiro');
 });
-caso('Leitura de telegráficos e aberturas derrota os cinco guardiões com o conjunto básico no nível 1',()=>{
+caso('A leitura dos avisos vence as três etapas dos cinco guardiões com o conjunto básico no nível 1',()=>{
  function duelar(id,lerAtaque){
   const p=novoPerfil(),arena={...f,id,largura:590,pisos:[{...piso,w:590}],entrada:{x:165,y:202},
     moedas:[],estrelas:[],portas:[],santuarios:[{id:'inicio',x:165,y:202}],inimigos:[{id:'guardiao',tipo:'chefe',x:228,y:202,min:100,max:515}]};
   const j=new Jogo(p,{},[arena]);j.carregar(id);const h=j.heroi,i=j.inimigos[0];
-  let esquivas=0,vigilia=false,ultimasInstrucoes=null;
-  for(let n=0;n<1700&&h.vida>0&&i.vida>0;n++){
+  let esquivas=0;
+  const vigilias=new Set();
+  for(let n=0;n<2400&&h.vida>0&&i.vida>0;n++){
    const dx=i.x+i.w/2-h.x-h.w/2,dist=Math.abs(dx),dir=Math.sign(dx),e={};
    if(dist>23)e.eixo=dir;
    if(h.acao==='livre'){
@@ -156,14 +162,70 @@ caso('Leitura de telegráficos e aberturas derrota os cinco guardiões com o con
     else if(dist<34&&h.vigor>=(lerAtaque?37:14)&&(!lerAtaque||i.estado==='patrulha'||i.estado==='recuperacao'&&i.duracao-i.tempo>.35)){e.leve=true;e.eixo=dir;}
    }
    j.atualizar(passo,e);
-   if(i.estado==='aviso'&&i.transicao){vigilia=true;ultimasInstrucoes=i.ataqueNome;}
+   if(i.estado==='aviso'&&i.transicao)vigilias.add(i.ataqueNome);
   }
-  return {heroi:h.vida,chefe:i.vida,esquivas,vigilia,ultimasInstrucoes};
+  return {heroi:h.vida,chefe:i.vida,esquivas,vigilias:[...vigilias]};
  }
  for(const fase of [4,7,10,12,15]){
-  const resultado=duelar(fase,true);assert.equal(resultado.chefe,0,'fase '+fase);assert(resultado.heroi>0&&resultado.esquivas>0);assert(resultado.vigilia);assert.equal(resultado.ultimasInstrucoes,'Segunda vigília');
+  const resultado=duelar(fase,true);assert.equal(resultado.chefe,0,'fase '+fase);assert(resultado.heroi>0&&resultado.esquivas>0);
+  assert.deepEqual(resultado.vigilias,['Segunda vigília','Terceira vigília']);
  }
  const repeticao=duelar(15,false);assert.equal(repeticao.heroi,0);assert(repeticao.chefe>0);
+});
+caso('Cada janela de ouro exige a técnica certa na terceira etapa e só paga uma vez',()=>{
+ function executar(fase,etapa,vermelho=false){
+  const janela=GUARDIOES[fase].janela;
+  const golpe=GOLPES_INIMIGOS[janela.golpe];
+  const perfil=novoPerfil();
+  perfil.compradas=[janela.tecnica];
+  perfil.equipadas=[janela.tecnica,null];
+  const arena={...f,id:fase,moedas:[],estrelas:[],inimigos:[{id:'guardiao',tipo:'chefe',x:155,y:202,min:155,max:155}]};
+  const eventos=[];
+  const jogo=new Jogo(perfil,{evento:(nome,dados)=>eventos.push([nome,dados])},[arena]);
+  jogo.carregar(fase);
+  noPiso(jogo,126);
+  const {heroi}=jogo,inimigo=jogo.inimigos[0];
+  inimigo.faseChefe=etapa;
+  inimigo.estado='aberto';
+  inimigo.duracao=4;
+  const vida=inimigo.vida;
+  if(['pisada','eco'].includes(janela.tecnica)){
+   jogo.atualizar(passo,{pulo:true,seguraPulo:true});
+   rodar(jogo,4,{seguraPulo:true});
+  }
+  if(janela.momento==='recuperacao'){
+   Object.assign(inimigo,{estado:'recuperacao',tempo:0,duracao:2,ataqueId:janela.golpe});
+   jogo.atualizar(passo,{t1:true});
+   rodar(jogo,40);
+  }else{
+   jogo.atualizar(passo,{t1:true});
+   rodar(jogo,6);
+   Object.assign(inimigo,{estado:'impacto',tempo:0,duracao:golpe.impacto,ataqueId:janela.golpe,
+    campos:[{x:104,y:202,w:76,altura:golpe.altura}],imparavel:vermelho||!!golpe.imparavel});
+   assert.equal(heroi.etapa,'impacto',janela.tecnica);
+   jogo.impactoInimigo(inimigo);
+   if(!vermelho&&etapa===3){
+    assert.equal(inimigo.estado,'aberto');
+    assert.equal(heroi.vida,heroi.vidaMax);
+    assert(inimigo.danoOuro>0);
+    rodar(jogo,18);
+    noPiso(jogo,126);
+    jogo.atualizar(passo,{leve:true,eixo:1});
+    rodar(jogo,10);
+    assert(vida-inimigo.vida>Math.round(BALANCO.golpe.leve.dano*BALANCO.combate.bonusAberto),janela.tecnica);
+    assert.equal(inimigo.danoOuro,0);
+   }
+  }
+  return {dano:vida-inimigo.vida,ativacoes:eventos.filter(([nome])=>nome==='janelaOuro')};
+ }
+ for(const fase of [4,7,10,12,15]){
+  const {tecnica,momento}=GUARDIOES[fase].janela;
+  const ouro=executar(fase,3),anterior=executar(fase,2);
+  assert.deepEqual(ouro.ativacoes,[['janelaOuro',{tecnica,guardiao:'guardiao'}]],tecnica);
+  assert.deepEqual(anterior.ativacoes,[],tecnica);
+  if(momento==='recuperacao')assert(ouro.dano>anterior.dano,tecnica);
+ }
+ assert.deepEqual(executar(4,3,true).ativacoes,[]);
 });
 caso('Saltar após a borda e antecipar a entrada de salto antes de pousar',()=>{
  const {jogo}=ensaio({...f,inimigos:[],pisos:[{...piso,w:100},{...piso,id:'destino',x:143,w:205}]});const h=jogo.heroi;

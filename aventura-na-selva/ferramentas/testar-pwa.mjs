@@ -4,7 +4,13 @@ import { runInNewContext } from 'node:vm';
 import { iniciarPwa } from '../src/core/pwa.js';
 
 const raiz = new URL('../', import.meta.url);
+const {version:versaoJogo} = JSON.parse(await readFile(new URL('package.json', raiz), 'utf8'));
 const manifesto = JSON.parse(await readFile(new URL('manifest.webmanifest', raiz), 'utf8'));
+const indice = await readFile(new URL('index.html', raiz), 'utf8');
+const readme = await readFile(new URL('README.md', raiz), 'utf8');
+assert(indice.match(/<title>[^<]+<\/title>/)?.[0].includes('Edição ' + versaoJogo));
+assert(manifesto.description.startsWith('Edição ' + versaoJogo + '.'));
+assert(readme.includes('edição ' + versaoJogo + '.'));
 assert.equal(manifesto.display, 'standalone');
 assert.equal(manifesto.scope, './');
 assert.equal(manifesto.start_url, './');
@@ -58,26 +64,42 @@ function disparar(tipo, propriedades = {}) {
   ouvintes.get(tipo)({ ...propriedades, waitUntil: esperar, respondWith: esperar });
   return retorno;
 }
-await caches.open(prefixo + 'antigo');
+const cacheV5 = prefixo + '0123456789abcdef';
+const cacheAnterior = prefixo + '6.0.0-fedcba9876543210';
+const cacheVizinho = 'aventura-selva:https://exemplo.test/outro-jogo/:0123456789abcdef';
+await caches.open(cacheV5);
+await caches.open(cacheAnterior);
+await caches.open(cacheVizinho);
 await caches.open('outro-app');
+depositos.get(cacheV5).set(escopo, new Response('Tela da edição anterior'));
 await disparar('install');
-const nomeAtual = (await caches.keys()).find(nome => nome.startsWith(prefixo) && nome !== prefixo + 'antigo');
-assert(nomeAtual);
+const prefixoAtual = prefixo + versaoJogo + '-';
+const nomeAtual = (await caches.keys()).find(nome => nome.startsWith(prefixoAtual));
+assert(nomeAtual && /^[a-f0-9]{16}$/.test(nomeAtual.slice(prefixoAtual.length)));
+assert((await caches.keys()).includes(cacheV5), 'O cache anterior ainda atende a aba antes da ativação');
 assert(depositos.get(nomeAtual).has(escopo + 'arte/cinzas/heroi.png'));
+for(const modulo of ['ambiente','progresso','poder','niveis-ui','modos','controles-ui','criaturas-pixel']) {
+  assert(depositos.get(nomeAtual).has(escopo+'src/cinzas/'+modulo+'.js'),'Módulo offline ausente: '+modulo);
+}
+for(const arquivo of depositos.get(nomeAtual).keys()){
+  assert(!/^(?:compat\/|ferramentas\/|legado\/|src\/debug\/)/.test(arquivo.slice(escopo.length)));
+}
 for (const icone of manifesto.icons) assert(depositos.get(nomeAtual).has(escopo + icone.src));
 await disparar('activate');
 assert.equal(assumirClientes, 1);
-assert.deepEqual((await caches.keys()).sort(), [nomeAtual, 'outro-app'].sort());
+assert.deepEqual((await caches.keys()).sort(), [nomeAtual, cacheVizinho, 'outro-app'].sort());
 
 online = false;
 const pedido = (nome, mode = 'same-origin', method = 'GET') => ({ url: new URL(nome, escopo).href, mode, method });
 const telaOffline = await disparar('fetch', { request: pedido('index.html?test=1', 'navigate') });
-assert.match(await telaOffline.text(), /Santuários de Aurora/);
+assert.equal(await telaOffline.text(), indice);
 const spritesOffline = await disparar('fetch', { request: pedido('arte/cinzas/heroi.png') });
 assert.equal(Buffer.from(await spritesOffline.arrayBuffer()).subarray(1,4).toString(), 'PNG');
 for(let fase=1;fase<=15;fase++)assert(depositos.get(nomeAtual).has(escopo+'arte/cinzas/f'+String(fase).padStart(2,'0')+'.webp'));
 assert.equal(disparar('fetch', { request: pedido('/fora-do-escopo', 'navigate') }), undefined);
 assert.equal(disparar('fetch', { request: pedido('https://fora.test/externo.js') }), undefined);
+assert.equal(disparar('fetch', { request: pedido('ferramentas/galeria.html', 'navigate') }), undefined);
+assert.equal(disparar('fetch', { request: pedido('ferramentas/testar-pwa.mjs') }), undefined);
 assert.equal(disparar('fetch', { request: pedido('./', 'navigate', 'POST') }), undefined);
 assert.equal(disparar('message', { data: 'outro' }), undefined);
 await disparar('message', { data: 'ATUALIZAR' });

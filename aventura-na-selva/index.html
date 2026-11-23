@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="css/sinais.css">
   <link rel="stylesheet" href="css/santuarios.css">
-  <title>Aventura na Selva · Santuários de Aurora</title>
+  <title>Aventura na Selva · Santuários de Aurora · Edição 7.0.0</title>
 </head>
 <body>
 <main id="palco" data-tela="menu" aria-busy="true">
@@ -21,6 +21,7 @@
         <button class="aba atual" data-acao="inicio" aria-current="page"><i class="ico i-chama" aria-hidden="true"></i>Jornada</button>
         <button class="aba" data-acao="atlas"><i class="ico i-mapa" aria-hidden="true"></i>Atlas</button>
         <button class="aba" data-acao="tecnicas"><i class="ico i-tecnicas" aria-hidden="true"></i>Técnicas</button>
+        <button class="aba" data-acao="provas"><i class="ico i-treino" aria-hidden="true"></i>Provas</button>
       </nav>
       <div class="utilitarios">
         <button class="botao-icone" data-acao="som" id="somMenu" aria-label="Desativar som" title="Som · M"><i class="ico i-som" aria-hidden="true"></i></button>
@@ -38,6 +39,7 @@
           <div class="acoes-capa">
             <button class="primario" id="partir" data-acao="partir"><i class="ico i-jogar" aria-hidden="true"></i><span>Iniciar jornada</span></button>
             <button class="secundario" data-acao="manual"><i class="ico i-manual" aria-hidden="true"></i>Guia de campo</button>
+            <button class="secundario" data-acao="amuletoMenu"><i class="ico i-selo" aria-hidden="true"></i>Amuletos</button>
           </div>
         </div>
       </section>
@@ -54,7 +56,7 @@
   </section>
   <section id="partida" aria-label="Partida" hidden>
     <div id="moldura">
-      <canvas id="jogo" tabindex="0" width="480" height="270" aria-label="Campo da aventura. A e D para andar, espaço para saltar, J para golpe leve, K para golpe pesado e Shift para esquivar.">Seu navegador precisa oferecer Canvas 2D.</canvas>
+      <canvas id="jogo" tabindex="0" width="480" height="270" aria-label="Campo da aventura. Consulte os comandos no Guia de campo ou nas Opções.">Seu navegador precisa oferecer Canvas 2D.</canvas>
       <div id="hud" aria-label="Estado de Lula">
         <div class="medalhao"><img src="arte/cinzas/sigilo.png" alt="" width="39" height="39"></div>
         <div class="medidores">
@@ -65,14 +67,23 @@
       </div>
       <div class="hud-direito"><button class="botao-icone" data-acao="telaCheia" aria-label="Alternar tela cheia" title="Tela cheia"><i class="ico i-expandir" aria-hidden="true"></i></button><button class="botao-icone" data-acao="pausa" aria-label="Pausar" title="Pausar · Esc"><i class="ico i-pausa" aria-hidden="true"></i></button></div>
       <div class="local" id="local"></div>
-      <div id="faixaChefe" hidden><div><span id="nomeChefe"></span><span id="faseChefe"></span></div><progress id="vidaChefe" max="1" value="1" aria-label="Vida do guardião"></progress></div>
+      <div class="classe-estado" id="classeEstado" hidden></div>
+      <div class="alvo-estado" id="alvoEstado" role="group" aria-label="Nível e resistências do oponente" hidden>
+        <strong id="alvoNome"></strong><span id="alvoResistencias"></span>
+      </div>
+      <ul id="objetivos" class="objetivos" aria-label="Objetivos do santuário" hidden></ul>
+      <div id="faixaChefe" hidden>
+        <div><span id="nomeChefe"></span><span id="faseChefe"></span></div>
+        <progress id="vidaChefe" max="1" value="1" aria-label="Vida do guardião"></progress>
+        <progress id="posturaChefe" max="1" value="0" aria-label="Pressão sobre a guarda" hidden></progress>
+      </div>
       <div id="avisoCampo" role="status" aria-live="polite" hidden></div>
       <button id="interacao" class="interacao" data-acao="interagir" hidden><kbd>E</kbd><span></span></button>
       <button id="sairTreino" data-acao="sairTreino" hidden>Sair do treino</button>
     </div>
-    <div id="toque" class="toque" aria-label="Controles de toque">
+    <div id="toque" class="toque" role="group" aria-label="Controles de toque">
       <div class="dpad"><button data-controle="esq" aria-label="Andar para esquerda"><i class="ico i-esquerda"></i></button><button data-controle="dir" aria-label="Andar para direita"><i class="ico i-direita"></i></button></div>
-      <div class="toque-tecnicas"><button data-controle="cura" aria-label="Usar frasco de cura"><i class="ico i-frasco"></i></button><button data-controle="t1" aria-label="Técnica um">I</button><button data-controle="t2" aria-label="Técnica dois">II</button></div>
+      <div class="toque-tecnicas"><button data-controle="cura" aria-label="Usar frasco de cura"><i class="ico i-frasco"></i></button><button data-controle="t1" aria-label="Técnica um">I</button><button data-controle="t2" aria-label="Técnica dois">II</button><button data-controle="talento" aria-label="Talento da classe" hidden>Talento</button></div>
       <div class="toque-acoes"><button data-controle="esquiva" aria-label="Esquivar"><i class="ico i-esquiva"></i></button><button data-controle="pesado" aria-label="Golpe pesado"><i class="ico i-peso"></i></button><button data-controle="leve" aria-label="Golpe leve"><i class="ico i-espada"></i></button><button data-controle="pulo" aria-label="Saltar"><i class="ico i-pular"></i></button></div>
     </div>
   </section>
