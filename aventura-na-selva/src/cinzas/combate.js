@@ -39,7 +39,7 @@ function criarHeroi(p){
     invul:0,noChao:false,pisoId:null,
     acao:'livre',etapa:'livre',tempoAcao:0,duracaoAcao:0,progressoEtapa:0,prep:0,imp:0,rec:0,
     retorno:0,esperaVigor:0,atingidos:new Set(),efetuou:false,combo:0,janelaCombo:0,
-    fila:null,bufferPulo:0,coyote:0,cortouPulo:false,usouEco:false,seguro:null,rolouPerfeito:false,
+    fila:null,bufferPulo:0,bufferPorToque:false,subidaMinima:0,coyote:0,cortouPulo:false,usouEco:false,seguro:null,rolouPerfeito:false,
     ecoUsos:0,ecoDirecao:0,nivelAcao:1,fezContato:false};
   recalcularHeroi(heroi,p);
   return heroi;

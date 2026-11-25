@@ -77,10 +77,6 @@ const prefixoAtual = prefixo + versaoJogo + '-';
 const nomeAtual = (await caches.keys()).find(nome => nome.startsWith(prefixoAtual));
 assert(nomeAtual && /^[a-f0-9]{16}$/.test(nomeAtual.slice(prefixoAtual.length)));
 assert((await caches.keys()).includes(cacheV5), 'O cache anterior ainda atende a aba antes da ativação');
-assert(depositos.get(nomeAtual).has(escopo + 'arte/cinzas/heroi.png'));
-for(const modulo of ['ambiente','progresso','poder','niveis-ui','modos','controles-ui','criaturas-pixel']) {
-  assert(depositos.get(nomeAtual).has(escopo+'src/cinzas/'+modulo+'.js'),'Módulo offline ausente: '+modulo);
-}
 for(const arquivo of depositos.get(nomeAtual).keys()){
   assert(!/^(?:compat\/|ferramentas\/|legado\/|src\/debug\/)/.test(arquivo.slice(escopo.length)));
 }
@@ -93,9 +89,12 @@ online = false;
 const pedido = (nome, mode = 'same-origin', method = 'GET') => ({ url: new URL(nome, escopo).href, mode, method });
 const telaOffline = await disparar('fetch', { request: pedido('index.html?test=1', 'navigate') });
 assert.equal(await telaOffline.text(), indice);
-const spritesOffline = await disparar('fetch', { request: pedido('arte/cinzas/heroi.png') });
-assert.equal(Buffer.from(await spritesOffline.arrayBuffer()).subarray(1,4).toString(), 'PNG');
-for(let fase=1;fase<=15;fase++)assert(depositos.get(nomeAtual).has(escopo+'arte/cinzas/f'+String(fase).padStart(2,'0')+'.webp'));
+// As imagens e os módulos viajam na mesma resposta da navegação offline.
+assert(indice.includes('"heroi.png":"data:image/png;base64,'));
+for (let fase = 1; fase <= 15; fase++) {
+  const nome = 'f' + String(fase).padStart(2, '0') + '.webp';
+  assert(indice.includes(JSON.stringify(nome) + ':"data:image/webp;base64,'));
+}
 assert.equal(disparar('fetch', { request: pedido('/fora-do-escopo', 'navigate') }), undefined);
 assert.equal(disparar('fetch', { request: pedido('https://fora.test/externo.js') }), undefined);
 assert.equal(disparar('fetch', { request: pedido('ferramentas/galeria.html', 'navigate') }), undefined);
@@ -108,7 +107,7 @@ assert.equal(atualizar, 1);
 const janela = new EventTarget(), servico = new EventTarget(), registro = new EventTarget();
 const elementos = new Map(['painelPwa', 'estadoPwa', 'instalarJogo', 'ajudaPwa', 'atualizarJogo']
   .map(id => [id, Object.assign(new EventTarget(), { hidden: true })]));
-const documento = { getElementById: id => elementos.get(id) };
+const documento = { querySelector: () => ({}), getElementById: id => elementos.get(id) };
 let pedidosDeInstalacao = 0, recargas = 0, mensagem = '';
 Object.assign(registro, { waiting: { postMessage(valor) { mensagem = valor; } } });
 Object.assign(servico, {

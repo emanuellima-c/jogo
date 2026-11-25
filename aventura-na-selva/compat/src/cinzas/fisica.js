@@ -21,6 +21,7 @@ function posicionar(j,h,p){
   const assistencia=j.perfil?.opcoes?.assistenciaPulo??1;
   h.x=p.x-h.w/2;h.y=p.y-h.h;h.vx=h.vy=0;h.coyote=B.movimento.coyote*assistencia;h.bufferPulo=0;
   h.pisoId=j.pisos.find(s=>s.estado!=='ausente'&&p.x>=s.x&&p.x<=s.x+s.w&&Math.abs(s.y-p.y)<4)?.id??null;
+  h.subidaMinima=0;h.bufferPorToque=false;
   h.noChao=h.pisoId!==null;h.usouEco=false;h.cortouPulo=false;
 }
 function limitePortal(j,antigo){
@@ -84,13 +85,23 @@ function movimentar(j,dt,entrada){
   const assistencia=j.perfil?.opcoes?.assistenciaPulo??1;
   const estavaNoChao=h.noChao,antesVy=h.vy;
   h.coyote=h.noChao?m.coyote*assistencia:Math.max(0,h.coyote-dt);
-  h.bufferPulo=entrada.pulo?m.buffer*assistencia:Math.max(0,h.bufferPulo-dt);
+  if (entrada.pulo) {
+    h.bufferPorToque = Boolean(entrada.puloPorToque);
+    h.bufferPulo = (h.bufferPorToque ? m.bufferToque : m.buffer) * assistencia;
+  } else {
+    h.bufferPulo = Math.max(0, h.bufferPulo - dt);
+  }
+  h.subidaMinima = Math.max(0, h.subidaMinima - dt);
   const livre=h.acao==='livre',aerea=!h.noChao;
-  if(h.bufferPulo>0&&h.coyote>0&&(livre||h.etapa==='recuperacao'&&h.duracaoAcao-h.tempoAcao<.07)){
+  // No multitoque, o ataque pode começar no mesmo passo ou logo antes do salto.
+  const saltoComGolpe = h.bufferPorToque && h.etapa==='preparo' &&
+    (h.acao==='leve'||h.acao==='pesado') && h.tempoAcao<=.09;
+  if(h.bufferPulo>0&&h.coyote>0&&(livre||saltoComGolpe||h.etapa==='recuperacao'&&h.duracaoAcao-h.tempoAcao<.07)){
     h.vy=-m.impulso;h.noChao=false;h.pisoId=null;h.coyote=0;h.bufferPulo=0;h.cortouPulo=false;
+    h.subidaMinima = h.bufferPorToque ? m.subidaMinimaToque : 0;
     j.emitirSom('pulo');j.efeito('pulo',centro(h),pe(h),h.dir);
   }
-  if(entrada.seguraPulo===false&&!entrada.pulo&&!h.cortouPulo&&h.vy<0){
+  if(h.subidaMinima===0&&entrada.seguraPulo===false&&!entrada.pulo&&!h.cortouPulo&&h.vy<0){
     h.vy*=m.corte;h.cortouPulo=true;
   }
   if(livre&&eixo)h.dir=eixo>0?1:-1;

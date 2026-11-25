@@ -140,6 +140,16 @@ class EntradaCinzas {
       }
       botao.addEventListener('contextmenu', evento => evento.preventDefault());
     }
+    // A captura mantém o evento no primeiro botão, mesmo ao deslizar para outro.
+    for (const botao of this.botoes.filter(b => ['pulo','leve','pesado','esquiva'].includes(b.dataset.controle))) {
+      botao.addEventListener('pointermove', evento => {
+        const chave = 't' + evento.pointerId;
+        if (!this.fontes.has(chave) || !this.emPartida()) return;
+        const alvo = document.elementFromPoint(evento.clientX, evento.clientY)?.closest('.toque-acoes button');
+        if (!alvo || alvo.disabled || alvo.dataset.controle === this.fontes.get(chave)) return;
+        this.apertar(chave, alvo.dataset.controle);
+      });
+    }
     this.dpad?.addEventListener('pointermove', evento => this.moverDirecaoPorToque(evento));
 
     this.sondarGamepad = () => {
@@ -282,7 +292,9 @@ class EntradaCinzas {
       this.soltar(chave);
       return;
     }
-    const acao = evento.clientX < (left + right) / 2 ? 'esq' : 'dir';
+    const centro = (left + right) / 2;
+    if (this.fontes.has(chave) && Math.abs(evento.clientX - centro) <= 5) return;
+    const acao = evento.clientX < centro ? 'esq' : 'dir';
     if (acao !== this.fontes.get(chave)) this.apertar(chave, acao);
   }
 
@@ -428,6 +440,7 @@ class EntradaCinzas {
       seguraTalento: this.ativa('talento')
     };
     for (const pulso of this.pulsos) entrada[pulso] = true;
+    if (entrada.pulo && this.toque) entrada.puloPorToque = true;
     this.pulsos.clear();
     return entrada;
   }

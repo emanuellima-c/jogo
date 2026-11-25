@@ -28,6 +28,28 @@ caso('O vigor limita os ataques e a esquiva; salto básico continua disponível'
  jogo.atualizar(passo,{esquiva:true});assert.equal(jogo.heroi.acao,'livre');
  jogo.atualizar(passo,{pulo:true,seguraPulo:true});assert(jogo.heroi.vy<0);rodar(jogo,120);assert(jogo.heroi.vigor>40);
 });
+caso('Um toque rápido dá altura útil e segurar alcança o salto completo',()=>{
+ function altura(toque,segura){
+   const {jogo}=ensaio();const h=jogo.heroi,inicio=h.y;
+   jogo.atualizar(passo,{pulo:true,puloPorToque:toque,seguraPulo:segura});
+   while(h.vy<0)jogo.atualizar(passo,{seguraPulo:segura});
+   return inicio-h.y;
+ }
+ const curto=altura(false,false),toque=altura(true,false),longo=altura(true,true);
+ assert(toque>curto+10 && longo>toque+5);
+ console.log('Alturas medidas (tecla breve / toque breve / segurar):', [curto,toque,longo].map(Math.round));
+});
+caso('Direção, pulo e ataque por toque funcionam juntos',()=>{
+ for(const ataque of ['leve','pesado']){
+   for(const atraso of [0,2]){
+     const {jogo}=ensaio();const h=jogo.heroi;noPiso(jogo,100);
+     if(atraso){jogo.atualizar(passo,{[ataque]:true,eixo:1});rodar(jogo,atraso-1,{eixo:1});}
+     jogo.atualizar(passo,{[ataque]:!atraso,pulo:true,puloPorToque:true,eixo:1});
+     assert(h.vy<0 && !h.noChao);assert.equal(h.acao,ataque);
+     rodar(jogo,3,{eixo:1});assert(h.vx>0);
+   }
+ }
+});
 caso('Cura requer tempo e pode ser interrompida',()=>{
  const {jogo}=ensaio();const h=jogo.heroi;h.vida=34;const antes=h.frascos;
  jogo.atualizar(passo,{cura:true});assert.equal(h.vida,34);assert.equal(h.frascos,antes-1);

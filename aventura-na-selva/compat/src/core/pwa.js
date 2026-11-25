@@ -50,6 +50,12 @@ function oferecerAtualizacao(janela, servico, registro, botao) {
 
 function iniciarPwa(janela = window, documento = document) {
   if (!janela.isSecureContext || !['http:', 'https:'].includes(janela.location.protocol)) return;
+  if (!documento.querySelector('link[rel="manifest"]')) {
+    const link = documento.createElement('link');
+    link.rel = 'manifest';
+    link.href = './manifest.webmanifest';
+    documento.head.appendChild(link);
+  }
   const servico = janela.navigator.serviceWorker;
   if (!servico) return;
   const painel = documento.getElementById('painelPwa');

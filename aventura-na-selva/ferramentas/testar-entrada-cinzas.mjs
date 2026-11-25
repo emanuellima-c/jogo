@@ -107,6 +107,8 @@ toque(botoes[0], 'pointerdown', 3);
 toque(botoes[2], 'pointerdown', 8);
 assert.deepEqual([entrada.ler().eixo, entrada.ler().seguraPulo], [-1, true]);
 assert.deepEqual(vibracoes, [9]);
+emitir(dpad, 'pointermove', { pointerId:3, clientX:51, clientY:445 });
+assert.equal(entrada.ler().eixo, -1);
 emitir(dpad, 'pointermove', { pointerId:3, clientX:77, clientY:445 });
 assert.equal(entrada.ler().eixo, 1);
 toque(botoes[2], 'pointerup', 8);
@@ -118,6 +120,29 @@ assert.equal(ativos.size, 0);
 toque(botoes[3], 'pointerdown', 5);
 toque(botoes[3], 'pointercancel', 5);
 assert.equal(entrada.ler().leve, undefined);
+
+toque(botoes[1], 'pointerdown', 20);
+toque(botoes[2], 'pointerdown', 21);
+toque(botoes[2], 'pointerup', 21);
+toque(botoes[2], 'lostpointercapture', 21);
+const saltoRapido = entrada.ler();
+assert.deepEqual([saltoRapido.eixo, saltoRapido.pulo, saltoRapido.puloPorToque, saltoRapido.seguraPulo], [1,true,true,false]);
+assert.equal(entrada.ler().pulo, undefined);
+toque(botoes[1], 'pointerup', 20);
+
+// Um dedo segura a direção e o outro passa do pulo ao ataque. Um terceiro pode usar a técnica.
+toque(botoes[1], 'pointerdown', 30);
+toque(botoes[2], 'pointerdown', 31);
+toque(botoes[4], 'pointerdown', 32);
+documento.elementFromPoint = () => ({closest:() => botoes[3]});
+emitir(botoes[2], 'pointermove', {pointerId:31,clientX:250,clientY:440});
+const combinado = entrada.ler();
+assert.deepEqual([combinado.eixo,combinado.puloPorToque,combinado.leve,combinado.t1],[1,true,true,true]);
+toque(botoes[2], 'pointerup', 31);
+toque(botoes[4], 'pointercancel', 32);
+assert.equal(entrada.ler().eixo,1);
+toque(botoes[1], 'pointerup', 30);
+assert.equal(ativos.size,0);
 
 preferencias.alternarSegurar = true;
 tecnicas = ['quebra', 'aparo'];

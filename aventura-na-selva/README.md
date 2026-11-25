@@ -4,9 +4,11 @@ Jogo de ação e plataforma em português, edição 7.0.0. Guie Lula por 15 fase
 
 ## Começar
 
-Extraia o ZIP inteiro, abra **index.html** e escolha **Iniciar jornada**. Confira os golpes e a pose de cada classe e confirme a escolha. Use **Continuar jornada** para retomar o perfil. O **Atlas** permite voltar às fases abertas, procurar estrelas e recuperar ecos deixados para trás.
+Extraia o ZIP e abra **index.html** no Chrome do celular ou no navegador do computador e escolha **Novo jogo**. Confira os golpes e a pose de cada classe e confirme a escolha. Use **Continuar** para retomar o perfil. O **Atlas** permite voltar às fases abertas, procurar estrelas e recuperar ecos deixados para trás.
 
-Para instalar como aplicativo, sirva a pasta por HTTPS ou em localhost. Com Python, execute o comando abaixo dentro da pasta e abra `http://localhost:8000`. Escolha **Instalar jogo** e aguarde **Pronto para jogar offline** antes de desconectar.
+Após editar o jogo, execute `npm run preparar` na pasta principal para atualizar **index.html** a partir de `src/pagina.html.tmpl`, `src/`, `css/` e `arte/`.
+
+Para instalar como aplicativo, sirva a pasta principal por HTTPS ou em localhost. Com Python, execute o comando abaixo dentro da pasta e abra `http://localhost:8000`. Escolha **Instalar jogo** e aguarde **Pronto para jogar offline** antes de desconectar.
 
 ```sh
 python3 -m http.server 8000
@@ -226,7 +228,7 @@ Vida, dano e postura crescem de forma exponencial com o nível, e a recuperaçã
 
 ### Histórico da Rodada 2
 
-Os números desta seção registram a Rodada 2 na edição 6.0.0, antes das mudanças de ritmo e classes. As novas medições estão no diagnóstico da Rodada 3. [Diagnóstico e medições](DIAGNOSTICO-R3.md#medição-do-marco-1)
+Os números desta seção registram a Rodada 2 na edição 6.0.0, antes das mudanças de ritmo e classes. As novas medições estão no diagnóstico da Rodada 3. [Diagnóstico e medições](docs/DIAGNOSTICO-R3.md#medição-do-marco-1)
 
 O dano da tabela é por contato na primeira etapa do modo Normal. As outras etapas aplicam +10% e +16%. Os multiplicadores de aviso e recuperação são aplicados à duração própria de cada golpe. A pausa fica entre a recuperação e o próximo ataque.
 
@@ -299,7 +301,7 @@ O preparo gera a versão para abrir por duplo clique e o cache offline. `package
 | [pintura.js](src/cinzas/pintura.js) | Câmera e desenho da partida |
 | [som.js](src/cinzas/som.js) | Música, sinais e efeitos de impacto |
 
-O arquivo da edição 4 tem a suíte própria `npm run test:legado`. [Inventário e comandos](LEGADO.md)
+O arquivo da edição 4 tem a suíte própria `npm run test:legado`. [Inventário e comandos](docs/LEGADO.md)
 
 `npm run test:classes` percorre o Normal inteiro com cada classe usando somente o kit básico. Para focar uma classe, rode `node ferramentas/testar-trilhas-cinzas.mjs --classe=feiticeiro`.
 
@@ -318,6 +320,6 @@ O arquivo da edição 4 tem a suíte própria `npm run test:legado`. [Inventári
 | Compatibilidade | 37 módulos gerados e 72 recursos no pré-cache na Rodada 2. Os 44 módulos inativos estão arquivados. A suíte legada passou 122 de 122 testes e percorreu 15 fases. |
 | Desempenho emulado na Rodada 1 | Em três pares de medições de 300 quadros na F1, no Chromium com viewport de 390 × 844 e CPU limitada a 4×, a mediana ficou em 60 FPS nas duas versões. As faixas foram 59,6–60,0 antes e 59,2–60,0 depois. A mediana do custo p95 de simulação e desenho foi de 5,0 → 5,1 ms. |
 
-A avaliação de áudio em alto-falantes, gamepad físico e toque, vibração e desempenho em Android e iPhone físicos permanece pendente. Use o [checklist de testes manuais](CHECKLIST.md) para conferir esses fluxos.
+A avaliação de áudio em alto-falantes, gamepad físico e toque, vibração e desempenho em Android e iPhone físicos permanece pendente. Use o [checklist de testes manuais](docs/CHECKLIST.md) para conferir esses fluxos.
 
-Veja o [diagnóstico](DIAGNOSTICO.md), o [changelog por marcos](CHANGELOG.md), o [inventário do legado](LEGADO.md) e os [créditos e itens de arte futura](arte/cinzas/CREDITOS.md).
+Veja o [diagnóstico](docs/DIAGNOSTICO.md), o [changelog por marcos](docs/CHANGELOG.md), o [inventário do legado](docs/LEGADO.md) e os [créditos e itens de arte futura](arte/cinzas/CREDITOS.md).

@@ -2,7 +2,7 @@
 const BALANCO = {
   passo: 1/60, vazio: 326,
   movimento: { velocidade:128, impulso:268, gravidade:620, queda:355, aceleracao:1150, freio:1390,
-    coyote:.115, buffer:.14, corte:.59, largura:14, altura:26 },
+    coyote:.115, buffer:.14, bufferToque:.20, subidaMinimaToque:.12, corte:.59, largura:14, altura:26 },
   vida: { base:100, porNivel:3, bonusMaximo:21, danoEspinhos:17, duracaoDano:.22, frascos:2 },
   vigor: { maximo:100, fila:.15 },
   esquiva: { custo:23, preparo:.04, impacto:.18, recuperacao:.11, velocidade:216, janelaRetorno:.76 },

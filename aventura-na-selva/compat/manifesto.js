@@ -36,6 +36,7 @@ globalThis.AventuraModulos.arquivos = [
   "compat/src/core/configuracoes.js",
   "compat/src/core/loopPrincipal.js",
   "compat/src/core/pwa.js",
+  "compat/src/core/recursos.js",
   "compat/src/core/save.js",
   "compat/src/dados/poderes.js",
   "compat/src/main.js",

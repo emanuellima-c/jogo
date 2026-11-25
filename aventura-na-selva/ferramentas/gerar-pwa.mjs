@@ -1,29 +1,14 @@
 import { createHash } from 'node:crypto';
-import { readFile, readdir, writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 
-import { modulosEmUso } from './modulos-em-uso.mjs';
 
 const raiz = new URL('../', import.meta.url);
 const verificar = process.argv.includes('--verificar');
-async function listar(pasta, extensao) {
-  const arquivos = [];
-  for (const entrada of await readdir(new URL(pasta, raiz), { withFileTypes: true })) {
-    const nome = pasta + entrada.name;
-    if (entrada.isDirectory()) arquivos.push(...await listar(nome + '/', extensao));
-    else if (nome.endsWith(extensao)) arquivos.push(nome);
-  }
-  return arquivos;
-}
-
 const {version:versaoJogo} = JSON.parse(await readFile(new URL('package.json', raiz), 'utf8'));
 const manifesto = JSON.parse(await readFile(new URL('manifest.webmanifest', raiz), 'utf8'));
 const arquivos = [
-  'index.html', 'iniciar.js', 'manifest.webmanifest',
-  ...manifesto.icons.map(icone => icone.src),
-  'css/santuarios.css', 'css/sinais.css',
-  ...await listar('arte/cinzas/', '.webp'), ...await listar('arte/cinzas/', '.png'),
-  ...await listar('arte/fontes/', '.ttf'), ...await listar('arte/fontes/', '.woff2'),
-  ...await modulosEmUso()
+  'index.html', 'manifest.webmanifest',
+  ...manifesto.icons.map(icone => icone.src)
 ].sort();
 const modelo = await readFile(new URL('ferramentas/service-worker.modelo.js', raiz), 'utf8');
 const hash = createHash('sha256').update(versaoJogo).update('\0').update(modelo);

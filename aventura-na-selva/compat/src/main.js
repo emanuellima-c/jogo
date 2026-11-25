@@ -1,6 +1,7 @@
 // Gerado a partir de src/main.js. Edite o original e execute npm run preparar.
 globalThis.AventuraModulos.registrar("src/main.js", function (exports, usar) {
 "use strict";
+const { arte } = usar("src/core/recursos.js");
 const { Aplicacao } = usar("src/cinzas/aplicacao.js");
 const { iniciarPwa } = usar("src/core/pwa.js");
 function imagem(arquivo) {
@@ -8,7 +9,7 @@ function imagem(arquivo) {
     const im=new Image();
     im.onload=()=>resolve(im);
     im.onerror=()=>reject(new Error('Faltou o recurso gráfico '+arquivo+'.'));
-    im.src='arte/cinzas/'+arquivo;
+    im.src=arte(arquivo);
   });
 }
 async function iniciar(){

@@ -5,10 +5,10 @@
   "type": "module",
   "description": "Santuários de Aurora, jogo de ação e plataforma em pixel art com 15 fases, teclado e toque.",
   "scripts": {
-    "preparar": "node ferramentas/gerar-compatibilidade.mjs && node ferramentas/gerar-pwa.mjs",
+    "preparar": "node ferramentas/gerar-compatibilidade.mjs && node ferramentas/gerar-portatil.mjs && node ferramentas/gerar-pwa.mjs",
     "test:legado": "node legado/edicao-4/ferramentas/testar.mjs && node legado/edicao-4/ferramentas/testar-campanha.mjs",
     "test:classes": "node ferramentas/testar-trilhas-cinzas.mjs --classes",
-    "test": "node ferramentas/gerar-compatibilidade.mjs --verificar && node ferramentas/gerar-pwa.mjs --verificar && node ferramentas/testar-inicializacao.mjs && node ferramentas/testar-pwa.mjs && node ferramentas/testar-perfil-cinzas.mjs && node ferramentas/testar-poder-cinzas.mjs && node ferramentas/testar-niveis-cinzas.mjs && node ferramentas/testar-progresso-cinzas.mjs && node ferramentas/testar-modos-cinzas.mjs && node ferramentas/testar-combate-cinzas.mjs && node ferramentas/testar-biomas-cinzas.mjs && node ferramentas/testar-leitura-cinzas.mjs && node ferramentas/testar-objetivos-cinzas.mjs && node ferramentas/testar-pressao-cinzas.mjs && node ferramentas/testar-classes-cinzas.mjs && node ferramentas/testar-entrada-cinzas.mjs && node ferramentas/testar-trilhas-cinzas.mjs"
+    "test": "node ferramentas/testar-menu.mjs && node ferramentas/gerar-portatil.mjs --verificar && node ferramentas/gerar-compatibilidade.mjs --verificar && node ferramentas/gerar-pwa.mjs --verificar && node ferramentas/testar-inicializacao.mjs && node ferramentas/testar-pwa.mjs && node ferramentas/testar-perfil-cinzas.mjs && node ferramentas/testar-poder-cinzas.mjs && node ferramentas/testar-niveis-cinzas.mjs && node ferramentas/testar-progresso-cinzas.mjs && node ferramentas/testar-modos-cinzas.mjs && node ferramentas/testar-combate-cinzas.mjs && node ferramentas/testar-biomas-cinzas.mjs && node ferramentas/testar-leitura-cinzas.mjs && node ferramentas/testar-objetivos-cinzas.mjs && node ferramentas/testar-pressao-cinzas.mjs && node ferramentas/testar-classes-cinzas.mjs && node ferramentas/testar-entrada-cinzas.mjs && node ferramentas/testar-trilhas-cinzas.mjs"
   },
   "engines": {
     "node": ">=18"

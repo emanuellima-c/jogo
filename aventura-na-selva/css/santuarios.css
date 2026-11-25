@@ -96,6 +96,7 @@ h1{font:700 clamp(43px,5.5vw,82px)/.96 var(--pixel);letter-spacing:-.065em;margi
   }
   .toque button:active{transform:none}
   .toque button.ativo{background:#bba06c;color:#101b17}
+  .toque-acoes [data-controle=pulo]{height:calc(var(--tamanho-toque) + 10px);border-radius:12px}
   .toque-acoes button:last-child{color:#2c2516;background:#e5bc73}
   .toque-acoes button:last-child.ativo{background:#f8d89a}
   .toque-tecnicas button{font-size:16px}
@@ -244,3 +245,76 @@ h1{font:700 clamp(43px,5.5vw,82px)/.96 var(--pixel);letter-spacing:-.065em;margi
 .painel[data-painel=descanso] .texto-intro,.painel[data-painel=tecnicas] .texto-intro{padding:17px max(22%,24px) 17px 14px;min-height:76px;color:#edf0dd}
 .painel[data-painel=descanso] .texto-intro{background-image:linear-gradient(90deg,#14231dfa,#13241ce6 63%,#17211a66),url("../arte/cinzas/santuario.webp")}
 .painel[data-painel=tecnicas] .texto-intro{background-image:linear-gradient(90deg,#14231dfc,#13241ce6 63%,#17211a66),url("../arte/cinzas/mesa.webp")}
+
+/* Abertura da expedição: a mesma arte que apresenta o mundo de Aurora. */
+#casa {max-width:none;padding:0;background:#101b19;color:#f8f0d9}
+.titulo-jornada {
+  min-height:100svh;display:grid;align-content:center;justify-items:start;
+  gap:clamp(16px,3.5vh,38px);padding:clamp(32px,7vh,90px) clamp(22px,8vw,120px);
+  background:linear-gradient(90deg,#081914f5,#10241bdd 35%,#13202740 73%),url("../arte/cinzas/capa.webp") center / cover;
+}
+.marca-jornada {display:flex;align-items:center;gap:12px;font:700 12px/1.4 var(--pixel);color:#f2ce89;letter-spacing:.12em}
+.marca-jornada img {width:32px;height:32px;image-rendering:pixelated}
+.titulo-jornada h1 {font:normal clamp(52px,7.7vw,112px)/.92 Georgia,serif;color:#fff2ce;letter-spacing:-.055em;text-shadow:0 3px 16px #06130f}
+.titulo-jornada h1 span {display:block;color:#e2ba76;font-style:italic}
+.escolhas-titulo {display:grid;width:min(100%,290px);gap:6px}
+.escolhas-titulo button {justify-content:flex-start;border:1px solid #85907966;border-radius:2px;background:#14241ee8;color:#f2eddc;padding:11px 18px;min-height:45px;font:600 17px var(--texto)}
+.escolhas-titulo button.recomendado,.escolhas-titulo button:enabled:is(:hover,:focus-visible){background:#e9c78f;color:#1e2b20;border-color:#e9c78f}
+.escolhas-titulo button:disabled {opacity:.54}
+.extras-titulo {max-width:min(100%,540px);color:#d3d8c6;font-size:14px}
+.extras-titulo summary {cursor:pointer;padding:9px 0;color:#f2ce89}
+.links-jornada {display:flex;flex-wrap:wrap;gap:5px}
+@media(max-width:575px){.titulo-jornada{background-position:62% center}.titulo-jornada h1{font-size:clamp(48px,14vw,78px)}}
+
+/* Dois grupos de polegar e uma fileira de habilidades contextuais. */
+@media(any-pointer:coarse),(max-width:800px){
+  #palco[data-tela=jogando] .toque {
+    --tamanho-toque:clamp(44px,calc(48px * var(--escala-toque,1)),60px);
+    left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right));
+    bottom:max(12px,env(safe-area-inset-bottom));gap:6px 8px;
+    grid-template-columns:auto 1fr auto;grid-template-areas:"direcao tecnicas acoes";
+  }
+  #palco[data-tela=jogando] .toque[data-posicao=canhoto]{grid-template-areas:"acoes tecnicas direcao"}
+  #palco[data-tela=jogando] .toque[data-posicao=central]{grid-template-columns:auto auto auto}
+  .toque-acoes {grid-auto-flow:row;grid-template-columns:repeat(2,auto);gap:5px}
+  .toque button {flex-direction:column;gap:2px;border-radius:12px;background:#14281ff5}
+  .toque button small {font:600 10px/1 var(--texto);color:inherit;pointer-events:none}
+  .toque .dpad button,.toque [data-controle=pulo]{height:calc(var(--tamanho-toque) + 5px)}
+  .toque .dpad button {border-radius:14px;font-size:24px}
+  .toque-tecnicas button:disabled {display:none}
+  .toque-tecnicas {justify-self:center}
+}
+@media(max-width:575px),(orientation:portrait) and (max-width:800px){
+  #palco[data-tela=jogando] .toque,#palco[data-tela=jogando][data-talento=sim] .toque {
+    grid-template-columns:1fr 1fr;grid-template-areas:"tecnicas tecnicas" "direcao acoes";
+  }
+  #palco[data-tela=jogando] .toque[data-posicao=canhoto],#palco[data-tela=jogando][data-talento=sim] .toque[data-posicao=canhoto] {grid-template-areas:"tecnicas tecnicas" "acoes direcao"}
+  #palco[data-tela=jogando] .toque[data-posicao=central]{grid-template-columns:auto auto}
+  .toque .toque-tecnicas,.toque[data-posicao=canhoto] .toque-tecnicas {justify-self:center}
+}
+@media(orientation:portrait) and (max-width:740px){
+  #palco #partida,#palco[data-talento=sim] #partida{padding-bottom:calc(204px + env(safe-area-inset-bottom))}
+  #moldura{width:min(100%,max(80px,calc((100dvh - 272px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) * 304 / 252)))}
+}
+
+@media (orientation: landscape) and (any-pointer: coarse) {
+  #palco[data-tela=jogando] .toque {
+    bottom: calc(max(12px, env(safe-area-inset-bottom)) + 24px);
+  }
+}
+
+@media (any-pointer: coarse) and (orientation: landscape) {
+  .toque .dpad {
+    gap: 0;
+  }
+  .toque[data-posicao=espalhado] .dpad {
+    margin-left: clamp(16px, 3vw, 36px);
+  }
+  .toque[data-posicao=canhoto] .dpad {
+    margin-right: clamp(16px, 3vw, 36px);
+  }
+  .toque .dpad button {
+    width: calc(var(--tamanho-toque) + clamp(10px, 2vw, 24px));
+    height: calc(var(--tamanho-toque) + 16px);
+  }
+}

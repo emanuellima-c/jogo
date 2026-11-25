@@ -14,13 +14,13 @@ const { AMULETOS } = usar("src/cinzas/progresso.js");
 const { dadosHeroi, multiplicadorResistencia, nivelDosAtributos } = usar("src/cinzas/poder.js");
 const { telaNivel, telaRefazer } = usar("src/cinzas/niveis-ui.js");
 const { desafioDoDia, tempoProva, gravarFantasma, registrarProva, desbloquear, cicloEmAndamento, iniciarCiclo } = usar("src/cinzas/modos.js");
-const { dois, regiaoCasa, telaAtlas, telaClasses, telaTecnicas, telaManual, telaOpcoes, telaPausa, telaMorte, telaResultado, telaAmuletos, telaProvas, telaResultadoProva } = usar("src/cinzas/telas.js");
+const { dois, telaAtlas, telaClasses, telaTecnicas, telaManual, telaOpcoes, telaPausa, telaMorte, telaResultado, telaAmuletos, telaProvas, telaResultadoProva } = usar("src/cinzas/telas.js");
 const $=id=>document.getElementById(id);
 const FALAS=['Uma gravação boa começa ouvindo a pedra.','O cristal canta antes do impacto. Escute.','Leve só duas marcas. Aprenda o peso de cada uma.'];
 const caminhos={menu:'menu',atlas:'menu',tecnicas:'menu',manual:'menu',opcoes:'menu',pausa:'jogando',descanso:'jogando',oficina:'jogando',nivel:'descanso',refazer:'nivel'};
 const submenus=['manual','opcoes','atlas','tecnicas','amuletos','provas'];
 const congelamentos={impacto:.035,'impacto-metal':.045,dano:.054,'aparo-perfeito':.068,perfeito:.045};
-const pulsosCongelados=['pulo','leve','pesado','esquiva','cura','t1','t2','interagir','talento'];
+const pulsosCongelados=['pulo','puloPorToque','leve','pesado','esquiva','cura','t1','t2','interagir','talento'];
 const tiposBarra = new Set(['chefe','elite','mini']);
 const iconesDano={fisico:'⚔',fogo:'♨',arcano:'✦',sagrado:'✚'};
 function texto(el,v){const s=String(v);if(el.textContent!==s)el.textContent=s;}
@@ -184,12 +184,12 @@ class Aplicacao {
     this.loop.parar();this.entrada.limpar();this.tela='menu';this.sobreCampo=false;this.palco.dataset.tela='menu';
     this.casa.hidden=false;this.casa.inert=false;this.partida.hidden=true;this.partida.inert=true;this.camada.hidden=true;
     const p=this.perfil;
-    texto($('partir').querySelector('span'),cicloEmAndamento(p)?'Continuar ciclo '+p.ciclo:
-      p.concluidas.length===15?'Explorar a jornada':p.iniciada?'Continuar jornada':'Iniciar jornada');
-    $('cartasRegiao').innerHTML=regiaoCasa(p);
+    $('partir').disabled = !p.iniciada;
+    const principal = p.iniciada ? $('partir') : $('novoJogo');
+    for (const id of ['partir', 'novoJogo']) $(id).classList.toggle('recomendado', $(id) === principal);
     texto($('estadoSave').querySelector('span'),this.saveOk?(p.iniciada?classeDoPerfil(p).nome+' · Nível '+p.nivel+' · '+p.concluidas.length+' de 15 fases':'Progresso neste dispositivo'):'Progresso nesta sessão');
     this.som.definirTema('menu');this.som.pausar(false);
-    if(salvar)$('partir').focus({preventScroll:true});return true;
+    if(salvar)principal.focus({preventScroll:true});return true;
   }
   carregar(id,retomar=false){
     const perfil=this.perfil;
@@ -484,7 +484,13 @@ class Aplicacao {
     }
     if(acao==='interagir'){if(this.tela==='jogando')j.interagir();return;}
     if(acao==='sairTreino'){if(j.emTreino)j.treinar();return;}
+    if(acao==='novoJogo' && this.tela==='menu'){
+      this.selecaoClasse={id:'cavaleiro',fase:1,origem:'menu',novaJornada:true,substitui:p.iniciada};
+      this.abrir('classes');
+      return;
+    }
     if(acao==='partir'){
+      if(!p.iniciada)return;
       if(p.concluidas.length===15&&!cicloEmAndamento(p)){this.regiao=4;this.abrir('atlas');}
       else this.carregar(p.fase,p.iniciada);
       return;
@@ -529,7 +535,16 @@ class Aplicacao {
     if(acao==='confirmarClasse'&&this.tela==='classes'){
       const selecao=this.selecaoClasse;
       if(selecao.novoCiclo&&!iniciarCiclo(p,selecao.modificadores))return;
-      if(!escolherClasse(p,selecao.id,selecao.novoCiclo))return;
+      const perfil = selecao.novaJornada ? novoPerfil() : p;
+      if(!escolherClasse(perfil,selecao.id,selecao.novoCiclo))return;
+      if(selecao.novaJornada){
+        perfil.opcoes=p.opcoes;
+        perfil.revisao=p.revisao;
+        this.perfil=perfil;
+        this.jogo=this.criarJogo(perfil);
+        this.prova=null;
+        this.fala=0;
+      }
       this.selecaoClasse=null;
       this.carregar(selecao.fase);
       if(selecao.novoCiclo)this.aviso('Novo ciclo · os guardiões despertaram.');

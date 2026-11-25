@@ -1,3 +1,4 @@
+import { arte } from './core/recursos.js';
 import { Aplicacao } from './cinzas/aplicacao.js';
 import { iniciarPwa } from './core/pwa.js';
 
@@ -6,7 +7,7 @@ function imagem(arquivo) {
     const im=new Image();
     im.onload=()=>resolve(im);
     im.onerror=()=>reject(new Error('Faltou o recurso gráfico '+arquivo+'.'));
-    im.src='arte/cinzas/'+arquivo;
+    im.src=arte(arquivo);
   });
 }
 async function iniciar(){

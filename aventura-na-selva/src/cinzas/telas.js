@@ -1,3 +1,4 @@
+import { arte } from '../core/recursos.js';
 import { FASES, REGIOES } from './fases.js';
 import { ATRIBUTOS, CINZA_REFAZER, CLASSES, TECNICAS, BALANCO } from './ajustes.js';
 import { eficaciaGravura, dadosHeroi } from './poder.js';
@@ -9,7 +10,7 @@ import { nomeTecla } from './entrada.js';
 const glifos={retorno:'espada',quebra:'peso',aparo:'aparo',estocada:'tecnicas',pisada:'pisada',eco:'passo'};
 const icone=nome=>'<i class="ico i-'+nome+'" aria-hidden="true"></i>';
 const dois=n=>String(n).padStart(2,'0');
-const figura=n=>'arte/cinzas/f'+dois(n)+'.webp';
+const figura=n=>arte('f'+dois(n)+'.webp');
 const pequena=(n,txt)=>'<span class="kicker">'+n+'</span>'+txt;
 function botao(acao,texto,g='',classe='',atrib=''){
   return '<button type="button" data-acao="'+acao+'" class="'+classe+'" '+atrib+'>'+(g?icone(g):'')+texto+'</button>';
@@ -58,7 +59,8 @@ function telaClasses(selecao){
     (ficha.talento?'<p><strong>'+ficha.talento.nome+'</strong> · '+ficha.talento.descricao+'</p>':'')+
     '<dl class="atributos-classe">'+Object.entries(ficha.atributosIniciais).map(([atributo,valor])=>
       '<div><dt>'+ATRIBUTOS[atributo].nome+'</dt><dd>'+valor+'</dd></div>').join('')+'</dl></article></div><div class="grupo-acoes confirmar-classe">'+
-    botao('confirmarClasse',novoCiclo?'Confirmar e começar o ciclo':'Confirmar e iniciar jornada','jogar','primario')+'</div>';
+    (selecao.substitui?'<p>Ao confirmar, sua jornada salva será substituída. Suas configurações serão mantidas.</p>'+botao('voltar','Cancelar'):'')+
+    botao('confirmarClasse',selecao.substitui?'Substituir jornada e recomeçar':novoCiclo?'Confirmar e começar o ciclo':'Confirmar e iniciar jornada','jogar','primario')+'</div>';
 }
 function inventario(p,trocar){
   return '<div class="inventario" aria-label="Técnicas equipadas">'+p.equipadas.map((id,i)=>{
@@ -100,7 +102,7 @@ function catalogo(p,modo){
 function telaTecnicas(p,modo,fala,evoluir=true){
   const loja=modo==='oficina',descanso=modo==='descanso',mostra=loja||descanso;
   let html=cabecalho(loja?'Oficina de gravação':descanso?'Santuário aceso':'Gravuras de Aurora',loja?'Bento do Cipó':descanso?'Descanso':'Técnicas');
-  if(loja)html+='<div class="oficina-topo"><img src="arte/cinzas/retrato.png" width="108" height="108" alt="Bento do Cipó com manto, óculos e lanterna de cristal"><div><h3>Gravador dos caminhos</h3><blockquote>“'+fala+'”</blockquote></div></div>';
+  if(loja)html+='<div class="oficina-topo"><img src="'+arte('retrato.png')+'" width="108" height="108" alt="Bento do Cipó com manto, óculos e lanterna de cristal"><div><h3>Gravador dos caminhos</h3><blockquote>“'+fala+'”</blockquote></div></div>';
   else html+='<p class="texto-intro">'+(descanso?'Vida e frascos restaurados. As patrulhas comuns retomaram seus postos. Troque aqui as duas gravuras equipadas.':'Bento grava técnicas em troca de ecos. Equipe até duas na oficina ou em um santuário.')+'</p>';
   html+='<div class="figuras"><span class="bolsa">'+icone('eco')+p.ecos+' ecos</span>'+inventario(p,mostra)+'</div>';
   if(descanso)html+=botao('retomar','Voltar à trilha','jogar','primario')+(evoluir?botao('nivelMenu','Evoluir atributos','chama'):'');

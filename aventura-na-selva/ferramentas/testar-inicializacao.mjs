@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 
-const codigo = await readFile(new URL('../iniciar.js', import.meta.url), 'utf8');
+const codigo = await readFile(new URL('../src/iniciar.js', import.meta.url), 'utf8');
 const manifesto = "AventuraModulos.arquivos=['compat/dado.js','compat/main.js'];";
 const fontesBase = {
   'compat/manifesto.js': manifesto,
