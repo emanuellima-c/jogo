@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Galeria de leitura · Santuários de Aurora</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, sans-serif; background: #131923; color: #f4ecd8; }
+    body { max-width: 96rem; margin: auto; padding: 2rem clamp(1rem, 3vw, 3rem); }
+    h1, h2 { font-family: Georgia, serif; line-height: 1.1; }
+    h1 { color: #f6d995; margin: 0; font-size: clamp(2rem, 4vw, 3.5rem); }
+    header p { color: #cdd6c8; max-width: 62ch; line-height: 1.55; }
+    .controles { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem 1.3rem; margin-block: 1.45rem; }
+    label { display: inline-flex; align-items: center; gap: .5rem; min-height: 2.75rem; }
+    input { accent-color: #f0d294; inline-size: 1.15rem; block-size: 1.15rem; }
+    select, button { font: inherit; min-height: 2.75rem; border: 1px solid #a88d59; color: inherit;
+      background: #25312f; border-radius: .35rem; padding: .35rem .7rem; }
+    :focus-visible { outline: 3px solid #fff4ad; outline-offset: 3px; }
+    article { border-top: 1px solid #505d5a; padding-block: 1.25rem; }
+    article header { display: flex; align-items: center; flex-wrap: wrap; gap: .4rem 1rem; }
+    article h2 { margin: 0; font-size: 1.4rem; }
+    article p { margin: 0; }
+    .poses { margin-top: .8rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: .65rem; }
+    figure { margin: 0; }
+    canvas { display: block; width: 100%; aspect-ratio: 16 / 9; image-rendering: pixelated; }
+    figcaption { color: #d5d9cd; padding-top: .35rem; }
+    .cinza canvas { filter: grayscale(1); }
+    [hidden] { display: none; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Galeria de leitura</h1>
+    <p>Os quadros usam o desenho do jogo e a escala lógica de 480 × 270. Compare as três poses, a área do aviso e a marca serrilhada dos golpes que atravessam o aparo.</p>
+    <div class="controles">
+      <label for="grupo">Exibir
+        <select id="grupo">
+          <option value="todos">Tudo</option>
+          <option value="criatura">Criaturas comuns</option>
+          <option value="guardiao">Guardiões e relicários</option>
+          <option value="perigo">Perigos ambientais</option>
+        </select>
+      </label>
+      <label><input type="checkbox" id="contraste">Alto contraste</label>
+      <label><input type="checkbox" id="cinza">Tons de cinza</label>
+    </div>
+  </header>
+  <p id="situacao" role="status">Carregando as amostras…</p>
+  <main id="galeria" aria-label="Amostras de leitura de combate"></main>
+  <noscript>Ative JavaScript para desenhar as amostras da galeria.</noscript>
+  <script type="module" src="./galeria.mjs"></script>
+</body>
+</html>

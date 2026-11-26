@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#101716">
+  <meta name="description" content="Uma aventura de ação e plataforma em quinze fases. Cruze a selva sob o eclipse, encontre Bento do Cipó e enfrente os guardiões de Aurora.">
+  <link rel="icon" href="pwa/icone-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="pwa/icone-192.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="css/sinais.css">
+  <link rel="stylesheet" href="css/santuarios.css">
+  <title>Aventura na Selva · Santuários de Aurora · Edição 7.0.0</title>
+</head>
+<body>
+<main id="palco" data-tela="menu" aria-busy="true">
+  <section class="casa" id="casa" aria-label="Menu da jornada">
+    <div class="titulo-jornada">
+      <p class="marca-jornada"><img src="arte/cinzas/sigilo.png" alt=""> Santuários de Aurora</p>
+      <h1>Aventura <span>na Selva</span></h1>
+      <nav class="escolhas-titulo" aria-label="Menu principal">
+        <button id="partir" data-acao="partir" disabled>Continuar</button>
+        <button id="novoJogo" data-acao="novoJogo">Novo jogo</button>
+        <button data-acao="opcoes">Configurações</button>
+      </nav>
+      <footer class="extras-titulo">
+        <span id="estadoSave"><span></span></span>
+        <details><summary>Mais opções</summary>
+          <div class="links-jornada">
+            <button data-acao="atlas">Atlas</button><button data-acao="tecnicas">Técnicas</button>
+            <button data-acao="provas">Provas</button><button data-acao="manual">Guia de campo</button>
+            <button data-acao="amuletoMenu">Amuletos</button>
+            <button id="somMenu" data-acao="som"><i class="ico i-som"></i> Som</button>
+          </div>
+        </details>
+        <div class="pwa" id="painelPwa" hidden><span class="luz"></span><span id="estadoPwa" role="status">Preparando modo offline…</span><button id="instalarJogo"><i class="ico i-baixar" aria-hidden="true"></i>Instalar jogo</button><button id="atualizarJogo" hidden>Atualizar jogo</button>
+        <p id="ajudaPwa" hidden>Abra o menu do navegador e escolha Instalar aplicativo ou Adicionar à tela inicial.</p></div>
+      </footer>
+    </div>
+  </section>
+  <section id="partida" aria-label="Partida" hidden>
+    <div id="moldura">
+      <canvas id="jogo" tabindex="0" width="480" height="270" aria-label="Campo da aventura. Consulte os comandos no Guia de campo ou nas Opções.">Seu navegador precisa oferecer Canvas 2D.</canvas>
+      <div id="hud" aria-label="Estado de Walter White">
+        <div class="medalhao"><img src="arte/cinzas/sigilo.png" alt="" width="39" height="39"></div>
+        <div class="medidores">
+          <div><i class="ico i-vida" aria-hidden="true"></i><progress id="vida" max="100" value="100" aria-label="Vida"></progress><span id="vidaTexto">100</span></div>
+          <div><i class="ico i-vigor" aria-hidden="true"></i><progress id="vigor" max="100" value="100" aria-label="Vigor"></progress><span id="vigorTexto">100</span></div>
+        </div>
+        <div class="recursos"><span><i class="ico i-frasco" aria-hidden="true"></i><b id="frascos" aria-label="Cargas de cura">2</b></span><span><i class="ico i-eco" aria-hidden="true"></i><b id="ecos" aria-label="Ecos">0</b></span></div>
+      </div>
+      <div class="hud-direito"><button class="botao-icone" data-acao="telaCheia" aria-label="Alternar tela cheia" title="Tela cheia"><i class="ico i-expandir" aria-hidden="true"></i></button><button class="botao-icone" data-acao="pausa" aria-label="Pausar" title="Pausar · Esc"><i class="ico i-pausa" aria-hidden="true"></i></button></div>
+      <div class="local" id="local"></div>
+      <div class="classe-estado" id="classeEstado" hidden></div>
+      <div class="alvo-estado" id="alvoEstado" role="group" aria-label="Nível e resistências do oponente" hidden>
+        <strong id="alvoNome"></strong><span id="alvoResistencias"></span>
+      </div>
+      <ul id="objetivos" class="objetivos" aria-label="Objetivos do santuário" hidden></ul>
+      <div id="faixaChefe" hidden>
+        <div><span id="nomeChefe"></span><span id="faseChefe"></span></div>
+        <progress id="vidaChefe" max="1" value="1" aria-label="Vida do guardião"></progress>
+        <progress id="posturaChefe" max="1" value="0" aria-label="Pressão sobre a guarda" hidden></progress>
+      </div>
+      <div id="avisoCampo" role="status" aria-live="polite" hidden></div>
+      <button id="interacao" class="interacao" data-acao="interagir" hidden><kbd>E</kbd><span></span></button>
+      <button id="sairTreino" data-acao="sairTreino" hidden>Sair do treino</button>
+    </div>
+    <div id="toque" class="toque" role="group" aria-label="Controles de toque">
+      <div class="dpad"><button data-controle="esq" aria-label="Andar para esquerda"><i class="ico i-esquerda"></i></button><button data-controle="dir" aria-label="Andar para direita"><i class="ico i-direita"></i></button></div>
+      <div class="toque-tecnicas"><button data-controle="cura" aria-label="Usar frasco de cura"><i class="ico i-frasco"></i><small>Cura</small></button><button data-controle="t1" aria-label="Técnica um">I</button><button data-controle="t2" aria-label="Técnica dois">II</button><button data-controle="talento" aria-label="Talento da classe" hidden>Talento</button></div>
+      <div class="toque-acoes"><button data-controle="esquiva" aria-label="Esquivar"><i class="ico i-esquiva"></i><small>Esquiva</small></button><button data-controle="pesado" aria-label="Golpe pesado"><i class="ico i-peso"></i><small>Pesado</small></button><button data-controle="leve" aria-label="Golpe leve"><i class="ico i-espada"></i><small>Ataque</small></button><button data-controle="pulo" aria-label="Saltar"><i class="ico i-pular"></i><small>Pulo</small></button></div>
+    </div>
+  </section>
+  <div id="camada" class="camada" hidden>
+    <section id="painel" class="painel" role="dialog" aria-modal="true" aria-labelledby="painelTitulo" tabindex="-1"></section>
+  </div>
+  <div id="inicializacao" role="status">Preparando os caminhos…</div>
+  <div id="avisoGlobal" role="status" aria-live="polite" hidden></div>
+  <input id="arquivoSave" type="file" accept=".json,application/json" hidden>
+  <noscript>Ative o JavaScript para jogar Aventura na Selva.</noscript>
+</main>
+<script src="iniciar.js" defer></script>
+</body></html>
